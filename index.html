@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Books</title>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- AdsGram SDK -->
+    <script src="https://sad.adsgram.ai/js/adsgram.js"></script>
+    <style>
+        :root {
+            --tg-theme-bg-color: #fefefe;
+            --tg-theme-text-color: #222222;
+            --tg-theme-hint-color: #999999;
+            --tg-theme-button-color: #2481cc;
+            --tg-theme-button-text-color: #ffffff;
+            --bg-card: #f2f2f5;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
+            margin: 0;
+            padding: 0;
+            padding-bottom: 70px;
+        }
+        .container {
+            padding: 16px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+        }
+        .balance-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .balance-amount {
+            font-size: 32px;
+            font-weight: bold;
+            color: var(--tg-theme-button-color, #2481cc);
+            margin-top: 5px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+        .task-item {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .btn {
+            background-color: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #fff);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--tg-theme-bg-color, #fff);
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+        }
+        .nav-item {
+            text-align: center;
+            font-size: 12px;
+            color: var(--tg-theme-hint-color, #777);
+            cursor: pointer;
+            flex: 1;
+        }
+        .nav-item.active {
+            color: var(--tg-theme-button-color, #2481cc);
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Главная вкладка -->
+        <div id="tab-home" class="tab-content active">
+            <div class="header">
+                <h2>📚 Crypto Books</h2>
+                <p>Зарабатывай токены за подписки, просмотры и рекламу!</p>
+            </div>
+            
+            <div class="balance-card">
+                <div>Ваш баланс</div>
+                <div class="balance-amount" id="user-balance">0.00 BC</div>
+            </div>
+
+            <div class="section-title">Быстрый старт</div>
+            <button class="btn" style="width: 100%; padding: 12px;" onclick="showAd()">Смотреть рекламу за награду 🎁</button>
+        </div>
+
+        <!-- Вкладка Заданий -->
+        <div id="tab-tasks" class="tab-content">
+            <div class="section-title">Активные задания</div>
+            <div id="tasks-container">
+                <div class="task-item">
+                    <div>
+                        <strong>Подписаться на канал</strong>
+                        <div style="font-size: 12px; color: gray;">Награда: +1.00 BC</div>
+                    </div>
+                    <button class="btn" onclick="alert('Скоро здесь будет проверка подписки!')">Выполнить</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Вкладка Профиль -->
+        <div id="tab-profile" class="tab-content">
+            <div class="section-title">Профиль пользователя</div>
+            <div class="balance-card" style="text-align: left;">
+                <p><strong>Имя:</strong> <span id="profile-name">Игрок</span></p>
+                <p><strong>ID:</strong> <span id="profile-id">-</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Навигация снизу -->
+    <div class="nav-bar">
+        <div class="nav-item active" onclick="switchTab('home', this)">Главная</div>
+        <div class="nav-item" onclick="switchTab('tasks', this)">Задания</div>
+        <div class="nav-item" onclick="switchTab('profile', this)">Профиль</div>
+    </div>
+
+    <script>
+        // Инициализация Telegram WebApp
+        let tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Заполнение данных пользователя из Телеграма
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            document.getElementById('profile-name').innerText = tg.initDataUnsafe.user.first_name;
+            document.getElementById('profile-id').innerText = tg.initDataUnsafe.user.id;
+        }
+
+        // Переключение вкладок
+        function switchTab(tabName, element) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('tab-' + tabName).classList.add('active');
+            element.classList.add('active');
+        }
+
+        // Настройка AdsGram (замените 'int-xxxx' на ваш реальный Block ID)
+        const adController = window.AdsGram ? window.AdsGram.init({ blockId: "int-xxxx" }) : null;
+
+        function showAd() {
+            if (adController) {
+                adController.show().then((result) => {
+                    // Реклама успешно просмотрена
+                    alert('Реклама просмотрена! Награда начислена.');
+                    // Здесь будет запрос к базе данных на плюс к балансу
+                }).catch((result) => {
+                    // Ошибка или пользователь закрыл рекламу досрочно
+                    alert('Реклама пропущена или произошла ошибка.');
+                });
+            } else {
+                alert('AdsGram SDK не загружен (тестовый режим в браузере).');
+            }
+        }
+    </script>
+</body>
+</html>
