@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crypto Books</title>
+    <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- AdsGram SDK -->
     <script src="https://sad.adsgram.ai/js/adsgram.js"></script>
+    <!-- TON Connect UI SDK -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
         :root {
@@ -24,120 +27,262 @@
             padding: 0;
             padding-bottom: 70px;
         }
-        .container { padding: 16px; max-width: 500px; margin: 0 auto; }
-        .header { text-align: center; padding: 10px 0; }
-        .balance-card { background: var(--bg-card); border-radius: 16px; padding: 16px; text-align: center; margin-bottom: 16px; }
-        .balance-amount { font-size: 28px; font-weight: bold; color: var(--button-color); margin-top: 5px; }
-        .section-title { font-size: 18px; font-weight: bold; margin-bottom: 12px; margin-top: 16px; }
-        .task-item { background: var(--bg-card); border-radius: 12px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .btn { background-color: var(--button-color); color: var(--button-text-color); border: none; border-radius: 8px; padding: 8px 14px; font-weight: 600; cursor: pointer; }
-        .btn-danger { background-color: #e74c3c; color: #fff; }
-        .btn-success { background-color: #2ecc71; color: #fff; }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 13px; margin-bottom: 4px; color: var(--hint-color); }
-        .form-control { width: 100%; padding: 10px; border: 1px solid var(--hint-color); border-radius: 8px; box-sizing: border-box; background: var(--bg-color); color: var(--text-color); }
-        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-color); border-top: 1px solid var(--hint-color); display: flex; justify-content: space-around; padding: 10px 0; z-index: 100; }
-        .nav-item { text-align: center; font-size: 11px; color: var(--hint-color); cursor: pointer; flex: 1; }
-        .nav-item.active { color: var(--button-color); font-weight: bold; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .container {
+            padding: 16px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            padding: 10px 0;
+        }
+        .balance-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            margin-bottom: 16px;
+            color: var(--text-color);
+        }
+        .balance-amount {
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--button-color);
+            margin-top: 5px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            margin-top: 16px;
+            color: var(--text-color);
+        }
+        .task-item {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            color: var(--text-color);
+        }
+        .btn {
+            background-color: var(--button-color);
+            color: var(--button-text-color);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-danger {
+            background-color: #e74c3c;
+            color: #fff;
+        }
+        .btn-success {
+            background-color: #2ecc71;
+            color: #fff;
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 4px;
+            color: var(--hint-color);
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--hint-color);
+            border-radius: 8px;
+            box-sizing: border-box;
+            background: var(--bg-color);
+            color: var(--text-color);
+        }
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-color);
+            border-top: 1px solid var(--hint-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 100;
+        }
+        .nav-item {
+            text-align: center;
+            font-size: 11px;
+            color: var(--hint-color);
+            cursor: pointer;
+            flex: 1;
+        }
+        .nav-item.active {
+            color: var(--button-color);
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 10px;
+            color: var(--text-color);
+        }
+        th, td {
+            border: 1px solid var(--hint-color);
+            padding: 6px;
+            text-align: left;
+        }
+        th {
+            background: var(--bg-card);
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <!-- Главная -->
+        <!-- Главная вкладка -->
         <div id="tab-home" class="tab-content active">
             <div class="header">
                 <h2>📚 Crypto Books</h2>
                 <p>Зарабатывай GRAM за подписки и просмотры!</p>
             </div>
+            
             <div class="balance-card">
                 <div>Ваш баланс</div>
                 <div class="balance-amount" id="user-balance">0.000 GRAM</div>
             </div>
+
             <div class="section-title">Быстрый старт</div>
             <button class="btn" style="width: 100%; padding: 12px;" onclick="showAd()">Смотреть рекламу (+0.005 GRAM) 🎁</button>
         </div>
 
-        <!-- Задания -->
+        <!-- Вкладка Заданий -->
         <div id="tab-tasks" class="tab-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                 <div class="section-title" style="margin: 0;">Активные задания</div>
-                <button class="btn" onclick="toggleTaskForm()">➕ Создать</button>
+                <button class="btn" onclick="toggleTaskForm()">➕ Создать задание</button>
             </div>
+
+            <!-- Форма создания задания -->
             <div id="task-form-container" class="balance-card" style="text-align: left; display: none; margin-bottom: 16px;">
                 <div class="section-title" style="margin-top: 0; font-size: 16px;">Новое задание</div>
                 <div class="form-group">
-                    <label>Описание</label>
-                    <input type="text" id="new-task-title" class="form-control" placeholder="Подписаться на канал">
+                    <label>Описание задания</label>
+                    <input type="text" id="new-task-title" class="form-control" placeholder="Например: Подписаться на канал">
                 </div>
                 <div class="form-group">
-                    <label>Ссылка</label>
+                    <label>Ссылка на задание</label>
                     <input type="text" id="new-task-url" class="form-control" placeholder="https://t.me/...">
                 </div>
                 <div class="form-group">
-                    <label>Награда (GRAM)</label>
+                    <label>Награда / Стоимость (Мин: 0.001, Реком: 0.01 GRAM)</label>
                     <input type="number" id="new-task-reward" class="form-control" value="0.01" step="0.001" min="0.001">
                 </div>
-                <button class="btn" style="width: 100%;" onclick="createNewTask()">Опубликовать</button>
+                <button class="btn" style="width: 100%;" onclick="createNewTask()">Опубликовать задание</button>
             </div>
-            <div id="tasks-container"></div>
+
+            <div id="tasks-container">
+                <!-- Динамические задания -->
+            </div>
         </div>
 
-        <!-- Кошелек -->
+        <!-- Вкладка Кошелек -->
         <div id="tab-wallet" class="tab-content">
             <div class="section-title">Кошелек TON</div>
             <div class="balance-card">
                 <div id="ton-connect" style="display: flex; justify-content: center; margin-bottom: 15px;"></div>
-                <p style="font-size: 13px; color: var(--hint-color);">Подключите кошелек для пополнения и вывода.</p>
+                <p style="font-size: 13px; color: var(--hint-color);">Подключите кошелек для пополнения и вывода средств.</p>
             </div>
-            <div class="section-title">Пополнить</div>
+
+            <div class="section-title">Пополнить баланс</div>
             <div class="balance-card" style="text-align: left;">
+                <p style="font-size: 13px;">Переведите TON/GRAM на наш системный кошелек:</p>
                 <code style="word-break: break-all; background: var(--bg-color); padding: 4px; display: block; border-radius: 4px; font-size: 11px;">UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh</code>
                 <div class="form-group" style="margin-top: 10px;">
-                    <label>Сумма (TON)</label>
+                    <label>Сумма пополнения (TON)</label>
                     <input type="number" id="topup-amount" class="form-control" value="1" min="0.1" step="0.1">
                 </div>
-                <button class="btn" style="width: 100%;" onclick="realDeposit()">Оплатить</button>
+                <button class="btn" style="width: 100%;" onclick="realDeposit()">Оплатить через кошелек</button>
             </div>
-            <div class="section-title">Вывод</div>
+
+            <div class="section-title">Вывести средства</div>
             <div class="balance-card" style="text-align: left;">
-                <div class="form-group">
-                    <label>Сумма (GRAM)</label>
+                <p style="font-size: 13px; color: var(--hint-color);">Мин. вывод: 1 GRAM. Комиссия: 5%. Обработка до 24 часов.</p>
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>Сумма к выводу (GRAM)</label>
                     <input type="number" id="withdraw-amount" class="form-control" value="1" min="1" step="0.1">
                 </div>
                 <div class="form-group">
-                    <label>TON Адрес</label>
+                    <label>Ваш TON кошелек для вывода</label>
                     <input type="text" id="withdraw-address" class="form-control" placeholder="UQ...">
                 </div>
                 <button class="btn btn-danger" style="width: 100%;" onclick="requestWithdrawal()">Запросить вывод</button>
             </div>
         </div>
 
-        <!-- Профиль -->
+        <!-- Вкладка Профиль -->
         <div id="tab-profile" class="tab-content">
-            <div class="section-title">Профиль</div>
+            <div class="section-title">Профиль пользователя</div>
             <div class="balance-card" style="text-align: left;">
                 <p><strong>Имя:</strong> <span id="profile-name">Игрок</span></p>
                 <p><strong>ID:</strong> <span id="profile-id">-</span></p>
                 <p><strong>Баланс:</strong> <span id="profile-balance">0.000</span> GRAM</p>
-                <p><strong>Выполнено:</strong> <span id="profile-completed">0</span></p>
+                <p><strong>Выполнено заданий:</strong> <span id="profile-completed">0</span></p>
+                <p><strong>Доступно заданий:</strong> <span id="profile-available">0</span></p>
+                
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button class="btn" style="flex: 1;" onclick="switchTab('wallet', document.querySelectorAll('.nav-item')[2])">Пополнить</button>
+                    <button class="btn btn-danger" style="flex: 1;" onclick="switchTab('wallet', document.querySelectorAll('.nav-item')[2])">Вывести</button>
+                </div>
             </div>
         </div>
 
         <!-- Админ Панель -->
         <div id="tab-admin" class="tab-content">
-            <div class="section-title" style="color: #e74c3c;">⚙️ Админ-панель</div>
+            <div class="section-title" style="color: #e74c3c;">⚙️ Панель Администратора</div>
+            
             <div class="balance-card" style="text-align: left;">
-                <p>Всего пользователей: <span id="admin-users-count">1</span></p>
+                <strong>Статистика бота:</strong>
+                <p>Всего пользователей: <span id="admin-users-count">0</span></p>
+                <p>Всего активных заданий: <span id="admin-tasks-count">0</span></p>
                 <p>Заявок на вывод: <span id="admin-withdraw-count">0</span></p>
             </div>
-            <div class="section-title">Заявки на вывод</div>
+
+            <div class="section-title">Заявки на вывод средств</div>
             <div id="admin-withdrawals-list"></div>
+
+            <div class="section-title">Управление пользователями</div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Имя</th>
+                            <th>Баланс</th>
+                            <th>Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-users-list"></tbody>
+                </table>
+            </div>
+
+            <div class="section-title">Управление заданиями</div>
+            <div id="admin-tasks-list"></div>
         </div>
     </div>
 
+    <!-- Навигация снизу -->
     <div class="nav-bar">
         <div class="nav-item active" onclick="switchTab('home', this)">Главная</div>
         <div class="nav-item" onclick="switchTab('tasks', this)">Задания</div>
@@ -149,41 +294,46 @@
     <script>
         const ADMIN_ID = 554706846;
         let tg = window.Telegram.WebApp;
-        try { tg.expand(); } catch(e){}
+        tg.expand();
 
-        let currentUser = { id: 123456, name: "Игрок", balance: 0.100, completedTasks: 0 };
+        let currentUser = {
+            id: 123456,
+            name: "Игрок",
+            balance: 0.000,
+            completedTasks: 0
+        };
+
         if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
             currentUser.id = tg.initDataUnsafe.user.id;
             currentUser.name = tg.initDataUnsafe.user.first_name || "Игрок";
         }
 
         let dbUsers = JSON.parse(localStorage.getItem('cb_users')) || {};
+        if (!dbUsers[currentUser.id]) {
+            dbUsers[currentUser.id] = { id: currentUser.id, name: currentUser.name, balance: 0.100, completedTasks: 0 };
+        } else {
+            currentUser.balance = dbUsers[currentUser.id].balance;
+            currentUser.completedTasks = dbUsers[currentUser.id].completedTasks || 0;
+        }
+        saveUsers();
+
         let dbTasks = JSON.parse(localStorage.getItem('cb_tasks')) || [
             { id: 1, title: "Подписаться на канал Crypto Books", url: "https://t.me/", reward: 0.010, creator: 554706846 }
         ];
+
         let dbWithdrawals = JSON.parse(localStorage.getItem('cb_withdrawals')) || [];
 
-        if (!dbUsers[currentUser.id]) {
-            dbUsers[currentUser.id] = { id: currentUser.id, name: currentUser.name, balance: 0.100, completedTasks: 0 };
-        }
-        currentUser.balance = dbUsers[currentUser.id].balance;
-        currentUser.completedTasks = dbUsers[currentUser.id].completedTasks;
+        const manifestUrl = 'https://crypto-books.pp.ua/tonconnect-manifest.json';
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: manifestUrl,
+            buttonRootId: 'ton-connect'
+        });
+
+        updateUI();
 
         if (currentUser.id === ADMIN_ID) {
             document.getElementById('nav-admin').style.display = 'block';
         }
-
-        let tonConnectUI = null;
-        try {
-            tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-                manifestUrl: 'https://crypto-books.pp.ua/tonconnect-manifest.json',
-                buttonRootId: 'ton-connect'
-            });
-        } catch(e) {
-            console.log("TonConnect error:", e);
-        }
-
-        updateUI();
 
         function updateUI() {
             document.getElementById('user-balance').innerText = currentUser.balance.toFixed(3) + ' GRAM';
@@ -191,18 +341,34 @@
             document.getElementById('profile-id').innerText = currentUser.id;
             document.getElementById('profile-balance').innerText = currentUser.balance.toFixed(3);
             document.getElementById('profile-completed').innerText = currentUser.completedTasks;
+            document.getElementById('profile-available').innerText = dbTasks.length;
             
             dbUsers[currentUser.id].balance = currentUser.balance;
             dbUsers[currentUser.id].completedTasks = currentUser.completedTasks;
-            localStorage.setItem('cb_users', JSON.stringify(dbUsers));
-            
+            saveUsers();
             renderTasks();
-            if (currentUser.id === ADMIN_ID) renderAdminPanel();
+
+            if (currentUser.id === ADMIN_ID) {
+                renderAdminPanel();
+            }
+        }
+
+        function saveUsers() {
+            localStorage.setItem('cb_users', JSON.stringify(dbUsers));
+        }
+
+        function saveTasks() {
+            localStorage.setItem('cb_tasks', JSON.stringify(dbTasks));
+        }
+
+        function saveWithdrawals() {
+            localStorage.setItem('cb_withdrawals', JSON.stringify(dbWithdrawals));
         }
 
         function switchTab(tabName, element) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
             document.getElementById('tab-' + tabName).classList.add('active');
             element.classList.add('active');
         }
@@ -236,7 +402,7 @@
             let task = dbTasks[index];
             currentUser.balance += task.reward;
             currentUser.completedTasks += 1;
-            alert(`Задание выполнено! +${task.reward.toFixed(3)} GRAM`);
+            alert(`Задание выполнено! Начислено +${task.reward.toFixed(3)} GRAM`);
             updateUI();
         }
 
@@ -245,75 +411,227 @@
             let url = document.getElementById('new-task-url').value.trim();
             let reward = parseFloat(document.getElementById('new-task-reward').value);
 
-            if (!title || !url) { alert('Заполните поля!'); return; }
-            if (currentUser.balance < reward) { alert('Недостаточно средств!'); return; }
+            if (!title || !url) {
+                alert('Заполните все поля!');
+                return;
+            }
+            if (isNaN(reward) || reward < 0.001) {
+                alert('Минимальная стоимость задания — 0.001 GRAM');
+                return;
+            }
+            if (currentUser.balance < reward) {
+                alert('Недостаточно средств на балансе для создания задания!');
+                return;
+            }
 
             currentUser.balance -= reward;
             dbTasks.push({ id: Date.now(), title, url, reward, creator: currentUser.id });
-            localStorage.setItem('cb_tasks', JSON.stringify(dbTasks));
+            saveTasks();
+
+            document.getElementById('new-task-title').value = '';
+            document.getElementById('new-task-url').value = '';
+            document.getElementById('new-task-reward').value = '0.01';
             toggleTaskForm();
-            alert('Задание создано!');
+
+            alert('Задание успешно создано и опубликовано!');
             updateUI();
         }
 
         async function realDeposit() {
-            if (!tonConnectUI || !tonConnectUI.connected) {
-                alert('Подключите кошелек!');
+            if (!tonConnectUI.connected) {
+                alert('Пожалуйста, подключите кошелек во вкладке "Кошелек" перед пополнением!');
                 switchTab('wallet', document.querySelectorAll('.nav-item')[2]);
                 return;
             }
+
             let amountTon = parseFloat(document.getElementById('topup-amount').value);
+            if (isNaN(amountTon) || amountTon <= 0) {
+                alert('Введите корректную сумму пополнения');
+                return;
+            }
+
+            let nanoAmount = Math.floor(amountTon * 1000000000).toString();
+            let recipientAddress = "UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh";
+
+            let transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 600,
+                messages: [
+                    {
+                        address: recipientAddress,
+                        amount: nanoAmount
+                    }
+                ]
+            };
+
             try {
-                await tonConnectUI.sendTransaction({
-                    validUntil: Math.floor(Date.now() / 1000) + 600,
-                    messages: [{ address: "UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh", amount: Math.floor(amountTon * 1000000000).toString() }]
-                });
+                alert('Подтвердите транзакцию в вашем кошельке...');
+                let result = await tonConnectUI.sendTransaction(transaction);
+                
                 currentUser.balance += amountTon;
-                alert(`Успешно пополнено на ${amountTon} GRAM!`);
+                alert(`Оплата прошла успешно! На ваш баланс зачислено ${amountTon} GRAM.`);
                 updateUI();
             } catch (e) {
-                alert('Ошибка или отмена транзакции.');
+                console.log(e);
+                alert('Оплата была отменена или произошла ошибка. Средства не списаны.');
             }
         }
 
         function requestWithdrawal() {
             let amount = parseFloat(document.getElementById('withdraw-amount').value);
             let address = document.getElementById('withdraw-address').value.trim();
-            if (currentUser.balance < amount) { alert('Недостаточно средств'); return; }
-            if (!address) { alert('Введите адрес'); return; }
+
+            if (isNaN(amount) || amount < 1) {
+                alert('Минимальная сумма вывода — 1 GRAM');
+                return;
+            }
+            if (!address) {
+                alert('Введите адрес кошелька');
+                return;
+            }
+            if (currentUser.balance < amount) {
+                alert('Недостаточно средств на балансе');
+                return;
+            }
+
+            let fee = amount * 0.05;
+            let netAmount = amount - fee;
 
             currentUser.balance -= amount;
-            dbWithdrawals.push({ id: Date.now(), userId: currentUser.id, userName: currentUser.name, amount, address, date: new Date().toLocaleString() });
-            localStorage.setItem('cb_withdrawals', JSON.stringify(dbWithdrawals));
-            alert('Заявка на вывод создана!');
+            dbWithdrawals.push({
+                id: Date.now(),
+                userId: currentUser.id,
+                userName: currentUser.name,
+                amount: amount,
+                netAmount: netAmount,
+                address: address,
+                date: new Date().toLocaleString()
+            });
+            saveWithdrawals();
+
+            alert(`Заявка на вывод ${amount} GRAM создана! С учетом комиссии (5%) вы получите ${netAmount.toFixed(3)} GRAM в течение 24 часов.`);
             updateUI();
         }
 
+        // Корректная инициализация AdsGram с обработкой ошибок
         let adController = null;
         if (window.AdsGram) {
-            try { adController = window.AdsGram.init({ blockId: "49272" }); } catch (e) {}
+            try {
+                adController = window.AdsGram.init({ blockId: "49272" });
+            } catch (e) {
+                console.error("AdsGram init error:", e);
+            }
         }
+
         function showAd() {
             if (adController) {
-                adController.show().then(() => {
+                adController.show().then((result) => {
                     currentUser.balance += 0.005;
-                    alert('Получено +0.005 GRAM!');
+                    alert('Реклама просмотрена! Получено +0.005 GRAM.');
                     updateUI();
-                }).catch(() => alert('Реклама пропущена'));
+                }).catch((err) => {
+                    console.log(err);
+                    alert('Реклама была пропущена или произошла ошибка показа.');
+                });
             } else {
                 currentUser.balance += 0.005;
-                alert('Тест: +0.005 GRAM');
+                alert('Тестовый режим (AdsGram недоступен): получено +0.005 GRAM.');
                 updateUI();
             }
         }
 
         function renderAdminPanel() {
+            let usersArray = Object.values(dbUsers);
+            document.getElementById('admin-users-count').innerText = usersArray.length;
+            document.getElementById('admin-tasks-count').innerText = dbTasks.length;
             document.getElementById('admin-withdraw-count').innerText = dbWithdrawals.length;
-            let html = '';
-            dbWithdrawals.forEach((w, i) => {
-                html += `<div class="task-item"><div>${w.userName}: ${w.amount} GRAM</div><button class="btn btn-success" onclick="dbWithdrawals.splice(${i},1);localStorage.setItem('cb_withdrawals',JSON.stringify(dbWithdrawals));renderAdminPanel();alert('Одобрено');">Ок</button></div>`;
+
+            let withdrawHtml = '';
+            if (dbWithdrawals.length === 0) {
+                withdrawHtml = '<p style="color:var(--hint-color); font-size:12px;">Нет заявок на вывод</p>';
+            } else {
+                dbWithdrawals.forEach((w, index) => {
+                    withdrawHtml += `
+                        <div class="task-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+                            <div><strong>Игрок:</strong> ${w.userName} (ID: ${w.userId})</div>
+                            <div><strong>Сумма:</strong> ${w.amount} GRAM (Чистыми: ${w.netAmount.toFixed(3)})</div>
+                            <div style="font-size: 11px; word-break: break-all;"><strong>Кошелек:</strong> ${w.address}</div>
+                            <div style="display: flex; gap: 10px; margin-top: 6px; width: 100%;">
+                                <button class="btn btn-success" style="flex:1;" onclick="adminApproveWithdraw(${index})">Одобрить</button>
+                                <button class="btn btn-danger" style="flex:1;" onclick="adminRejectWithdraw(${index})">Отклонить</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('admin-withdrawals-list').innerHTML = withdrawHtml;
+
+            let usersListHtml = '';
+            usersArray.forEach(u => {
+                usersListHtml += `
+                    <tr>
+                        <td>${u.id}</td>
+                        <td>${u.name}</td>
+                        <td><input type="number" id="bal-${u.id}" value="${u.balance.toFixed(3)}" step="0.001" style="width: 70px; background:var(--bg-color); color:var(--text-color); border:1px solid var(--hint-color);"></td>
+                        <td><button class="btn" onclick="adminUpdateBalance(${u.id})">💾</button></td>
+                    </tr>
+                `;
             });
-            document.getElementById('admin-withdrawals-list').innerHTML = html || '<p style="color:gray;font-size:12px;">Нет заявок</p>';
+            document.getElementById('admin-users-list').innerHTML = usersListHtml;
+
+            let tasksListHtml = '';
+            dbTasks.forEach((t, i) => {
+                tasksListHtml += `
+                    <div class="task-item">
+                        <div><strong>${t.title}</strong> (${t.reward} GRAM)</div>
+                        <button class="btn btn-danger" onclick="adminDeleteTask(${i})">Удалить</button>
+                    </div>
+                `;
+            });
+            document.getElementById('admin-tasks-list').innerHTML = tasksListHtml;
+        }
+
+        function adminApproveWithdraw(index) {
+            dbWithdrawals.splice(index, 1);
+            saveWithdrawals();
+            renderAdminPanel();
+            alert('Заявка одобрена и помечена как выполненная.');
+        }
+
+        function adminRejectWithdraw(index) {
+            let w = dbWithdrawals[index];
+            if (dbUsers[w.userId]) {
+                dbUsers[w.userId].balance += w.amount;
+                if (w.userId === currentUser.id) {
+                    currentUser.balance = dbUsers[w.userId].balance;
+                }
+                saveUsers();
+            }
+            dbWithdrawals.splice(index, 1);
+            saveWithdrawals();
+            renderAdminPanel();
+            updateUI();
+            alert('Заявка отклонена, средства возвращены на баланс пользователя.');
+        }
+
+        function adminUpdateBalance(userId) {
+            let newBal = parseFloat(document.getElementById(`bal-${userId}`).value);
+            if (!isNaN(newBal)) {
+                dbUsers[userId].balance = newBal;
+                if (userId === currentUser.id) {
+                    currentUser.balance = newBal;
+                }
+                saveUsers();
+                alert('Баланс пользователя обновлен!');
+                updateUI();
+            }
+        }
+
+        function adminDeleteTask(index) {
+            dbTasks.splice(index, 1);
+            saveTasks();
+            renderTasks();
+            renderAdminPanel();
+            alert('Задание удалено.');
         }
     </script>
 </body>
