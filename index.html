@@ -78,9 +78,23 @@
             font-weight: 600;
             cursor: pointer;
         }
-        .btn-danger { background-color: #e74c3c; color: #fff; }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 13px; margin-bottom: 4px; color: var(--hint-color); }
+        .btn-danger {
+            background-color: #e74c3c;
+            color: #fff;
+        }
+        .btn-success {
+            background-color: #2ecc71;
+            color: #fff;
+        }
+        .form-group {
+            margin-bottom: 12px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 4px;
+            color: var(--hint-color);
+        }
         .form-control {
             width: 100%;
             padding: 10px;
@@ -92,7 +106,9 @@
         }
         .nav-bar {
             position: fixed;
-            bottom: 0; left: 0; right: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
             background: var(--bg-color);
             border-top: 1px solid var(--hint-color);
             display: flex;
@@ -100,10 +116,38 @@
             padding: 10px 0;
             z-index: 100;
         }
-        .nav-item { text-align: center; font-size: 11px; color: var(--hint-color); cursor: pointer; flex: 1; }
-        .nav-item.active { color: var(--button-color); font-weight: bold; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
+        .nav-item {
+            text-align: center;
+            font-size: 11px;
+            color: var(--hint-color);
+            cursor: pointer;
+            flex: 1;
+        }
+        .nav-item.active {
+            color: var(--button-color);
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin-top: 10px;
+            color: var(--text-color);
+        }
+        th, td {
+            border: 1px solid var(--hint-color);
+            padding: 6px;
+            text-align: left;
+        }
+        th {
+            background: var(--bg-card);
+        }
     </style>
 </head>
 <body>
@@ -132,6 +176,7 @@
                 <button class="btn" onclick="toggleTaskForm()">➕ Создать задание</button>
             </div>
 
+            <!-- Форма создания задания -->
             <div id="task-form-container" class="balance-card" style="text-align: left; display: none; margin-bottom: 16px;">
                 <div class="section-title" style="margin-top: 0; font-size: 16px;">Новое задание</div>
                 <div class="form-group">
@@ -143,13 +188,15 @@
                     <input type="text" id="new-task-url" class="form-control" placeholder="https://t.me/...">
                 </div>
                 <div class="form-group">
-                    <label>Награда (GRAM)</label>
+                    <label>Награда / Стоимость (Мин: 0.001, Реком: 0.01 GRAM)</label>
                     <input type="number" id="new-task-reward" class="form-control" value="0.01" step="0.001" min="0.001">
                 </div>
                 <button class="btn" style="width: 100%;" onclick="createNewTask()">Опубликовать задание</button>
             </div>
 
-            <div id="tasks-container"></div>
+            <div id="tasks-container">
+                <!-- Динамические задания -->
+            </div>
         </div>
 
         <!-- Вкладка Кошелек -->
@@ -158,6 +205,31 @@
             <div class="balance-card">
                 <div id="ton-connect" style="display: flex; justify-content: center; margin-bottom: 15px;"></div>
                 <p style="font-size: 13px; color: var(--hint-color);">Подключите кошелек для пополнения и вывода средств.</p>
+            </div>
+
+            <div class="section-title">Пополнить баланс</div>
+            <div class="balance-card" style="text-align: left;">
+                <p style="font-size: 13px;">Переведите TON/GRAM на наш системный кошелек:</p>
+                <code style="word-break: break-all; background: var(--bg-color); padding: 4px; display: block; border-radius: 4px; font-size: 11px;">UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh</code>
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>Сумма пополнения (TON)</label>
+                    <input type="number" id="topup-amount" class="form-control" value="1" min="0.1" step="0.1">
+                </div>
+                <button class="btn" style="width: 100%;" onclick="realDeposit()">Оплатить через кошелек</button>
+            </div>
+
+            <div class="section-title">Вывести средства</div>
+            <div class="balance-card" style="text-align: left;">
+                <p style="font-size: 13px; color: var(--hint-color);">Мин. вывод: 1 GRAM. Комиссия: 5%. Обработка до 24 часов.</p>
+                <div class="form-group" style="margin-top: 10px;">
+                    <label>Сумма к выводу (GRAM)</label>
+                    <input type="number" id="withdraw-amount" class="form-control" value="1" min="1" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Ваш TON кошелек для вывода</label>
+                    <input type="text" id="withdraw-address" class="form-control" placeholder="UQ...">
+                </div>
+                <button class="btn btn-danger" style="width: 100%;" onclick="requestWithdrawal()">Запросить вывод</button>
             </div>
         </div>
 
@@ -169,19 +241,50 @@
                 <p><strong>ID:</strong> <span id="profile-id">-</span></p>
                 <p><strong>Баланс:</strong> <span id="profile-balance">0.000</span> GRAM</p>
                 <p><strong>Выполнено заданий:</strong> <span id="profile-completed">0</span></p>
+                <p><strong>Доступно заданий:</strong> <span id="profile-available">0</span></p>
+                
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button class="btn" style="flex: 1;" onclick="switchTab('wallet', document.querySelectorAll('.nav-item')[2])">Пополнить</button>
+                    <button class="btn btn-danger" style="flex: 1;" onclick="switchTab('wallet', document.querySelectorAll('.nav-item')[2])">Вывести</button>
+                </div>
             </div>
         </div>
 
         <!-- Админ Панель -->
         <div id="tab-admin" class="tab-content">
             <div class="section-title" style="color: #e74c3c;">⚙️ Панель Администратора</div>
+            
             <div class="balance-card" style="text-align: left;">
-                <p>Активных заданий: <span id="admin-tasks-count">0</span></p>
+                <strong>Статистика бота:</strong>
+                <p>Всего пользователей: <span id="admin-users-count">0</span></p>
+                <p>Всего активных заданий: <span id="admin-tasks-count">0</span></p>
+                <p>Заявок на вывод: <span id="admin-withdraw-count">0</span></p>
             </div>
+
+            <div class="section-title">Заявки на вывод средств</div>
+            <div id="admin-withdrawals-list"></div>
+
+            <div class="section-title">Управление пользователями</div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Имя</th>
+                            <th>Баланс</th>
+                            <th>Действие</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-users-list"></tbody>
+                </table>
+            </div>
+
+            <div class="section-title">Управление заданиями</div>
+            <div id="admin-tasks-list"></div>
         </div>
     </div>
 
-    <!-- Навигация -->
+    <!-- Навигация снизу -->
     <div class="nav-bar">
         <div class="nav-item active" onclick="switchTab('home', this)">Главная</div>
         <div class="nav-item" onclick="switchTab('tasks', this)">Задания</div>
@@ -191,8 +294,8 @@
     </div>
 
     <script>
-        // ВСТАВЬТЕ ВАШИ ДАННЫЕ ИЗ SUPABASE (Settings -> API)
-        const SUPABASE_URL = 'ВАШ_PROJECT_URL'; 
+        // ВСТАВЬТЕ СВОИ ДАННЫЕ ИЗ SUPABASE (Settings -> API)
+        const SUPABASE_URL = 'ВАШ_PROJECT_URL';
         const SUPABASE_ANON_KEY = 'ВАШ_ANON_PUBLIC_KEY';
         
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -213,9 +316,11 @@
             currentUser.name = tg.initDataUnsafe.user.first_name || "Игрок";
         }
 
+        let dbUsers = {};
         let dbTasks = JSON.parse(localStorage.getItem('cb_tasks')) || [
-            { id: 1, title: "Подписаться на канал Crypto Books", url: "https://t.me/", reward: 0.010 }
+            { id: 1, title: "Подписаться на канал Crypto Books", url: "https://t.me/", reward: 0.010, creator: 554706846 }
         ];
+        let dbWithdrawals = JSON.parse(localStorage.getItem('cb_withdrawals')) || [];
 
         const manifestUrl = 'https://crypto-books.pp.ua/tonconnect-manifest.json';
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
@@ -223,8 +328,8 @@
             buttonRootId: 'ton-connect'
         });
 
-        // Загрузка данных пользователя из Supabase
-        async function initUser() {
+        // Загрузка и синхронизация пользователя через Supabase
+        async function initUserFromCloud() {
             let { data, error } = await supabaseClient
                 .from('users')
                 .select('*')
@@ -232,7 +337,7 @@
                 .maybeSingle();
 
             if (!data) {
-                // Если пользователя еще нет в базе — создаем стартовую запись
+                // Если пользователя нет в базе Supabase — создаем со стартовым балансом 0.100
                 let newUser = { 
                     id: currentUser.id, 
                     name: currentUser.name, 
@@ -248,16 +353,32 @@
                 currentUser.completedTasks = data.completed_tasks;
             }
 
+            // Загружаем всех пользователей для админки
+            let { data: allUsers } = await supabaseClient.from('users').select('*');
+            if (allUsers) {
+                allUsers.forEach(u => {
+                    dbUsers[u.id] = { id: u.id, name: u.name, balance: parseFloat(u.balance), completedTasks: u.completed_tasks };
+                });
+            }
+
             if (currentUser.id === ADMIN_ID) {
                 document.getElementById('nav-admin').style.display = 'block';
             }
+
             updateUI();
         }
 
-        initUser();
+        initUserFromCloud();
 
-        // Синхронизация изменений с облачной базой данных
-        async function syncUserToCloud() {
+        // Сохранение текущего пользователя в Supabase
+        async function saveUserToCloud() {
+            dbUsers[currentUser.id] = { 
+                id: currentUser.id, 
+                name: currentUser.name, 
+                balance: currentUser.balance, 
+                completedTasks: currentUser.completedTasks 
+            };
+
             await supabaseClient
                 .from('users')
                 .upsert({ 
@@ -274,14 +395,28 @@
             document.getElementById('profile-id').innerText = currentUser.id;
             document.getElementById('profile-balance').innerText = currentUser.balance.toFixed(3);
             document.getElementById('profile-completed').innerText = currentUser.completedTasks;
+            document.getElementById('profile-available').innerText = dbTasks.length;
             
-            syncUserToCloud();
+            saveUserToCloud();
             renderTasks();
+
+            if (currentUser.id === ADMIN_ID) {
+                renderAdminPanel();
+            }
+        }
+
+        function saveTasks() {
+            localStorage.setItem('cb_tasks', JSON.stringify(dbTasks));
+        }
+
+        function saveWithdrawals() {
+            localStorage.setItem('cb_withdrawals', JSON.stringify(dbWithdrawals));
         }
 
         function switchTab(tabName, element) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
             document.getElementById('tab-' + tabName).classList.add('active');
             element.classList.add('active');
         }
@@ -324,35 +459,229 @@
             let url = document.getElementById('new-task-url').value.trim();
             let reward = parseFloat(document.getElementById('new-task-reward').value);
 
-            if (!title || !url) { alert('Заполните все поля!'); return; }
+            if (!title || !url) {
+                alert('Заполните все поля!');
+                return;
+            }
+            if (isNaN(reward) || reward < 0.001) {
+                alert('Минимальная стоимость задания — 0.001 GRAM');
+                return;
+            }
+            if (currentUser.balance < reward) {
+                alert('Недостаточно средств на балансе для создания задания!');
+                return;
+            }
 
-            dbTasks.push({ id: Date.now(), title, url, reward });
-            localStorage.setItem('cb_tasks', JSON.stringify(dbTasks));
+            currentUser.balance -= reward;
+            dbTasks.push({ id: Date.now(), title, url, reward, creator: currentUser.id });
+            saveTasks();
+
+            document.getElementById('new-task-title').value = '';
+            document.getElementById('new-task-url').value = '';
+            document.getElementById('new-task-reward').value = '0.01';
             toggleTaskForm();
-            alert('Задание создано!');
-            renderTasks();
+
+            alert('Задание успешно создано и опубликовано!');
+            updateUI();
         }
 
-        // AdsGram инициализация
+        async function realDeposit() {
+            if (!tonConnectUI.connected) {
+                alert('Пожалуйста, подключите кошелек во вкладке "Кошелек" перед пополнением!');
+                switchTab('wallet', document.querySelectorAll('.nav-item')[2]);
+                return;
+            }
+
+            let amountTon = parseFloat(document.getElementById('topup-amount').value);
+            if (isNaN(amountTon) || amountTon <= 0) {
+                alert('Введите корректную сумму пополнения');
+                return;
+            }
+
+            let nanoAmount = Math.floor(amountTon * 1000000000).toString();
+            let recipientAddress = "UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh";
+
+            let transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 600,
+                messages: [
+                    {
+                        address: recipientAddress,
+                        amount: nanoAmount
+                    }
+                ]
+            };
+
+            try {
+                alert('Подтвердите транзакцию в вашем кошельке...');
+                let result = await tonConnectUI.sendTransaction(transaction);
+                
+                currentUser.balance += amountTon;
+                alert(`Оплата прошла успешно! На ваш баланс зачислено ${amountTon} GRAM.`);
+                updateUI();
+            } catch (e) {
+                console.log(e);
+                alert('Оплата была отменена или произошла ошибка. Средства не списаны.');
+            }
+        }
+
+        function requestWithdrawal() {
+            let amount = parseFloat(document.getElementById('withdraw-amount').value);
+            let address = document.getElementById('withdraw-address').value.trim();
+
+            if (isNaN(amount) || amount < 1) {
+                alert('Минимальная сумма вывода — 1 GRAM');
+                return;
+            }
+            if (!address) {
+                alert('Введите адрес кошелька');
+                return;
+            }
+            if (currentUser.balance < amount) {
+                alert('Недостаточно средств на балансе');
+                return;
+            }
+
+            let fee = amount * 0.05;
+            let netAmount = amount - fee;
+
+            currentUser.balance -= amount;
+            dbWithdrawals.push({
+                id: Date.now(),
+                userId: currentUser.id,
+                userName: currentUser.name,
+                amount: amount,
+                netAmount: netAmount,
+                address: address,
+                date: new Date().toLocaleString()
+            });
+            saveWithdrawals();
+
+            alert(`Заявка на вывод ${amount} GRAM создана! С учетом комиссии (5%) вы получите ${netAmount.toFixed(3)} GRAM в течение 24 часов.`);
+            updateUI();
+        }
+
+        // Корректная инициализация AdsGram с обработкой ошибок
         let adController = null;
         if (window.AdsGram) {
-            try { adController = window.AdsGram.init({ blockId: "49272" }); } catch (e) {}
+            try {
+                adController = window.AdsGram.init({ blockId: "49272" });
+            } catch (e) {
+                console.error("AdsGram init error:", e);
+            }
         }
 
         function showAd() {
             if (adController) {
-                adController.show().then(() => {
+                adController.show().then((result) => {
                     currentUser.balance += 0.005;
-                    alert('Получено +0.005 GRAM за рекламу!');
+                    alert('Реклама просмотрена! Получено +0.005 GRAM.');
                     updateUI();
-                }).catch(() => {
-                    alert('Реклама пропущена.');
+                }).catch((err) => {
+                    console.log(err);
+                    alert('Реклама была пропущена или произошла ошибка показа.');
                 });
             } else {
                 currentUser.balance += 0.005;
-                alert('Тестовый режим: +0.005 GRAM.');
+                alert('Тестовый режим (AdsGram недоступен): получено +0.005 GRAM.');
                 updateUI();
             }
+        }
+
+        function renderAdminPanel() {
+            let usersArray = Object.values(dbUsers);
+            document.getElementById('admin-users-count').innerText = usersArray.length;
+            document.getElementById('admin-tasks-count').innerText = dbTasks.length;
+            document.getElementById('admin-withdraw-count').innerText = dbWithdrawals.length;
+
+            let withdrawHtml = '';
+            if (dbWithdrawals.length === 0) {
+                withdrawHtml = '<p style="color:var(--hint-color); font-size:12px;">Нет заявок на вывод</p>';
+            } else {
+                dbWithdrawals.forEach((w, index) => {
+                    withdrawHtml += `
+                        <div class="task-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
+                            <div><strong>Игрок:</strong> ${w.userName} (ID: ${w.userId})</div>
+                            <div><strong>Сумма:</strong> ${w.amount} GRAM (Чистыми: ${w.netAmount.toFixed(3)})</div>
+                            <div style="font-size: 11px; word-break: break-all;"><strong>Кошелек:</strong> ${w.address}</div>
+                            <div style="display: flex; gap: 10px; margin-top: 6px; width: 100%;">
+                                <button class="btn btn-success" style="flex:1;" onclick="adminApproveWithdraw(${index})">Одобрить</button>
+                                <button class="btn btn-danger" style="flex:1;" onclick="adminRejectWithdraw(${index})">Отклонить</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            document.getElementById('admin-withdrawals-list').innerHTML = withdrawHtml;
+
+            let usersListHtml = '';
+            usersArray.forEach(u => {
+                usersListHtml += `
+                    <tr>
+                        <td>${u.id}</td>
+                        <td>${u.name}</td>
+                        <td><input type="number" id="bal-${u.id}" value="${u.balance.toFixed(3)}" step="0.001" style="width: 70px; background:var(--bg-color); color:var(--text-color); border:1px solid var(--hint-color);"></td>
+                        <td><button class="btn" onclick="adminUpdateBalance(${u.id})">💾</button></td>
+                    </tr>
+                `;
+            });
+            document.getElementById('admin-users-list').innerHTML = usersListHtml;
+
+            let tasksListHtml = '';
+            dbTasks.forEach((t, i) => {
+                tasksListHtml += `
+                    <div class="task-item">
+                        <div><strong>${t.title}</strong> (${t.reward} GRAM)</div>
+                        <button class="btn btn-danger" onclick="adminDeleteTask(${i})">Удалить</button>
+                    </div>
+                `;
+            });
+            document.getElementById('admin-tasks-list').innerHTML = tasksListHtml;
+        }
+
+        function adminApproveWithdraw(index) {
+            dbWithdrawals.splice(index, 1);
+            saveWithdrawals();
+            renderAdminPanel();
+            alert('Заявка одобрена и помечена как выполненная.');
+        }
+
+        function adminRejectWithdraw(index) {
+            let w = dbWithdrawals[index];
+            if (dbUsers[w.userId]) {
+                dbUsers[w.userId].balance += w.amount;
+                if (w.userId === currentUser.id) {
+                    currentUser.balance = dbUsers[w.userId].balance;
+                }
+                saveUserToCloud();
+            }
+            dbWithdrawals.splice(index, 1);
+            saveWithdrawals();
+            renderAdminPanel();
+            updateUI();
+            alert('Заявка отклонена, средства возвращены на баланс пользователя.');
+        }
+
+        async function adminUpdateBalance(userId) {
+            let newBal = parseFloat(document.getElementById(`bal-${userId}`).value);
+            if (!isNaN(newBal)) {
+                if (dbUsers[userId]) {
+                    dbUsers[userId].balance = newBal;
+                }
+                if (userId === currentUser.id) {
+                    currentUser.balance = newBal;
+                }
+                await supabaseClient.from('users').update({ balance: newBal }).eq('id', userId);
+                alert('Баланс пользователя обновлен в облаке!');
+                updateUI();
+            }
+        }
+
+        function adminDeleteTask(index) {
+            dbTasks.splice(index, 1);
+            saveTasks();
+            renderTasks();
+            renderAdminPanel();
+            alert('Задание удалено.');
         }
     </script>
 </body>
