@@ -204,10 +204,10 @@
                 <p style="font-size: 13px;">Переведите TON/GRAM на наш системный кошелек:</p>
                 <code style="word-break: break-all; background: #ddd; padding: 4px; display: block; border-radius: 4px; font-size: 11px;">UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh</code>
                 <div class="form-group" style="margin-top: 10px;">
-                    <label>Сумма пополнения (GRAM)</label>
-                    <input type="number" id="topup-amount" class="form-control" value="1" min="0.1">
+                    <label>Сумма пополнения (TON)</label>
+                    <input type="number" id="topup-amount" class="form-control" value="1" min="0.1" step="0.1">
                 </div>
-                <button class="btn" style="width: 100%;" onclick="simulateDeposit()">Пополнить баланс</button>
+                <button class="btn" style="width: 100%;" onclick="realDeposit()">Оплатить через кошелек</button>
             </div>
 
             <div class="section-title">Вывести средства</div>
@@ -439,15 +439,46 @@
             updateUI();
         }
 
-        function simulateDeposit() {
-            let amount = parseFloat(document.getElementById('topup-amount').value);
-            if (isNaN(amount) || amount <= 0) {
-                alert('Введите корректную сумму');
+        // Реальное пополнение через блокчейн TON Connect
+        async function realDeposit() {
+            if (!tonConnectUI.connected) {
+                alert('Пожалуйста, подключите кошелек во вкладке "Кошелек" перед пополнением!');
+                switchTab('wallet', document.querySelectorAll('.nav-item')[2]);
                 return;
             }
-            currentUser.balance += amount;
-            alert(`Успешно пополнено на ${amount} GRAM! Средства поступили на ваш баланс.`);
-            updateUI();
+
+            let amountTon = parseFloat(document.getElementById('topup-amount').value);
+            if (isNaN(amountTon) || amountTon <= 0) {
+                alert('Введите корректную сумму пополнения');
+                return;
+            }
+
+            // Переводим TON в нанотоны (1 TON = 1,000,000,000 nanotons)
+            let nanoAmount = Math.floor(amountTon * 1000000000).toString();
+            let recipientAddress = "UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh";
+
+            let transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут
+                messages: [
+                    {
+                        address: recipientAddress,
+                        amount: nanoAmount
+                    }
+                ]
+            };
+
+            try {
+                alert('Подтвердите транзакцию в вашем кошельке...');
+                let result = await tonConnectUI.sendTransaction(transaction);
+                
+                // Если транзакция успешна, зачисляем средства пользователю
+                currentUser.balance += amountTon;
+                alert(`Оплата прошла успешно! На ваш баланс зачислено ${amountTon} GRAM.`);
+                updateUI();
+            } catch (e) {
+                console.log(e);
+                alert('Оплата была отменена или произошла ошибка. Средства не списаны.');
+            }
         }
 
         function requestWithdrawal() {
@@ -498,9 +529,9 @@
                     alert('Реклама пропущена или ошибка.');
                 });
             } else {
-                    currentUser.balance += 0.005;
-                    alert('Тестовый режим: реклама засчитана, получено +0.005 GRAM.');
-                    updateUI();
+                currentUser.balance += 0.005;
+                alert('Тестовый режим: реклама засчитана, получено +0.005 GRAM.');
+                updateUI();
             }
         }
 
