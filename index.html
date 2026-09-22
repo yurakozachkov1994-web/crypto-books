@@ -512,13 +512,15 @@
             updateUI();
         }
 
+        // Инициализация AdsGram SDK с UnitID: 49272
         let adController = null;
-        if (window.AdsGram) {
-            try {
-                adController = window.AdsGram.init({ blockId: "49272" });
-            } catch (e) {
-                console.error("AdsGram init error:", e);
+        try {
+            const adsgramLib = window.Adsgram || window.AdsGram;
+            if (adsgramLib) {
+                adController = adsgramLib.init({ blockId: "49272" });
             }
+        } catch (e) {
+            console.error("Adsgram init error:", e);
         }
 
         function showAd() {
@@ -532,6 +534,7 @@
                     alert('Реклама была пропущена или произошла ошибка показа.');
                 });
             } else {
+                // Запасной режим, если SDK по какой-то причине не подгрузился
                 currentUser.balance += 0.005;
                 alert('Тестовый режим (AdsGram недоступен): получено +0.005 GRAM.');
                 updateUI();
