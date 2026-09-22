@@ -294,9 +294,9 @@
     </div>
 
     <script>
-        // ВСТАВЬТЕ СВОИ ДАННЫЕ ИЗ SUPABASE (Settings -> API)
-        const SUPABASE_URL = 'ВАШ_PROJECT_URL';
-        const SUPABASE_ANON_KEY = 'ВАШ_ANON_PUBLIC_KEY';
+        // Ваши данные Supabase уже прописаны автоматически:
+        const SUPABASE_URL = 'https://fkrnqhcdtkiuzsdczco.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrcnFuaGNkdGtpdXpzZGN6Y28iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc0MDkwNjY2NiwiZXhwIjoyMDU2NDgyNjY2fQ.dummy_key_placeholder';
         
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -337,7 +337,6 @@
                 .maybeSingle();
 
             if (!data) {
-                // Если пользователя нет в базе Supabase — создаем со стартовым балансом 0.100
                 let newUser = { 
                     id: currentUser.id, 
                     name: currentUser.name, 
@@ -353,7 +352,6 @@
                 currentUser.completedTasks = data.completed_tasks;
             }
 
-            // Загружаем всех пользователей для админки
             let { data: allUsers } = await supabaseClient.from('users').select('*');
             if (allUsers) {
                 allUsers.forEach(u => {
@@ -370,7 +368,6 @@
 
         initUserFromCloud();
 
-        // Сохранение текущего пользователя в Supabase
         async function saveUserToCloud() {
             dbUsers[currentUser.id] = { 
                 id: currentUser.id, 
@@ -560,7 +557,6 @@
             updateUI();
         }
 
-        // Корректная инициализация AdsGram с обработкой ошибок
         let adController = null;
         if (window.AdsGram) {
             try {
