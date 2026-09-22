@@ -298,9 +298,9 @@
         let tg = window.Telegram.WebApp;
         tg.expand();
 
-        // Инициализация Supabase клиента (ключи взяты из скриншотов проекта fkrnqhcktkiasuzdczco)
+        // Подключение к вашему проекту Supabase (fkrnqhcktkiasuzdczco) с правильным публичным ключом
         const SUPABASE_URL = 'https://fkrnqhcktkiasuzdczco.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_XhWWV5Z_x4-VVTIEixvhig_n0s_F...'; // Публичный ключ проекта
+        const SUPABASE_KEY = 'sb_publishable_XhWWV5Z_x4-VVTIEixvhig_n0s_F...';
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = {
@@ -325,7 +325,6 @@
             buttonRootId: 'ton-connect'
         });
 
-        // Загрузка данных из базы Supabase при старте
         async function initApp() {
             await syncWithSupabase();
 
@@ -337,7 +336,6 @@
 
         async function syncWithSupabase() {
             try {
-                // 1. Загружаем пользователей
                 let { data: usersData, error: usersErr } = await supabaseClient.from('users').select('*');
                 if (!usersErr && usersData) {
                     dbUsers = {};
@@ -346,7 +344,6 @@
                     });
                 }
 
-                // Проверяем текущего игрока
                 if (!dbUsers[currentUser.id]) {
                     currentUser.balance = 0.100;
                     currentUser.completedTasks = 0;
@@ -357,7 +354,6 @@
                     currentUser.completedTasks = dbUsers[currentUser.id].completedTasks;
                 }
 
-                // 2. Загружаем задания
                 let { data: tasksData, error: tasksErr } = await supabaseClient.from('tasks').select('*');
                 if (!tasksErr && tasksData && tasksData.length > 0) {
                     dbTasks = tasksData.map(t => ({ id: t.id, title: t.title, url: t.url, reward: t.reward, creator: t.creator }));
@@ -367,7 +363,6 @@
                     ];
                 }
 
-                // 3. Загружаем заявки на вывод
                 let { data: wData, error: wErr } = await supabaseClient.from('withdrawals').select('*');
                 if (!wErr && wData) {
                     dbWithdrawals = wData.map(w => ({
@@ -415,34 +410,6 @@
                 balance: u.balance,
                 completed_tasks: u.completedTasks
             });
-        }
-
-        async function saveTasksToDb() {
-            // Перезаписываем или обновляем задания в Supabase
-            // Для простоты удаляем старые и пишем актуальные, либо апсертим
-            for (let t of dbTasks) {
-                await supabaseClient.from('tasks').upsert({
-                    id: t.id,
-                    title: t.title,
-                    url: t.url,
-                    reward: t.reward,
-                    creator: t.creator
-                });
-            }
-        }
-
-        async function saveWithdrawalsToDb() {
-            for (let w of dbWithdrawals) {
-                await supabaseClient.from('withdrawals').upsert({
-                    id: w.id,
-                    user_id: w.userId,
-                    user_name: w.userName,
-                    amount: w.amount,
-                    net_amount: w.netAmount,
-                    address: w.address,
-                    date: w.date
-                });
-            }
         }
 
         function switchTab(tabName, element) {
@@ -608,7 +575,6 @@
             updateUI();
         }
 
-        // Корректная инициализация AdsGram с обработкой ошибок
         let adController = null;
         if (window.AdsGram) {
             try {
