@@ -323,8 +323,15 @@
 
         let dbWithdrawals = JSON.parse(localStorage.getItem('cb_withdrawals')) || [];
 
+        // Исправление ошибки манифеста с помощью Data-URL
+        const manifestUrl = 'data:application/json,' + encodeURIComponent(JSON.stringify({
+            url: window.location.origin,
+            name: "Crypto Books",
+            iconUrl: "https://cryptologos.cc/logos/toncoin-ton-logo.png"
+        }));
+
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://crypto-books.pp.ua/tonconnect-manifest.json',
+            manifestUrl: manifestUrl,
             buttonRootId: 'ton-connect'
         });
 
