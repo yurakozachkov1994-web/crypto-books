@@ -10,7 +10,7 @@
     <script src="https://sad.adsgram.ai/js/adsgram.js"></script>
     <!-- TON Connect UI SDK -->
     <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-    <!-- Supabase JS Client -->
+    <!-- Supabase JS SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
@@ -294,15 +294,14 @@
     </div>
 
     <script>
-        // Ваши данные Supabase уже прописаны автоматически:
-        const SUPABASE_URL = 'https://fkrnqhcdtkiuzsdczco.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZrcnFuaGNkdGtpdXpzZGN6Y28iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc0MDkwNjY2NiwiZXhwIjoyMDU2NDgyNjY2fQ.dummy_key_placeholder';
-        
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
         const ADMIN_ID = 554706846;
         let tg = window.Telegram.WebApp;
         tg.expand();
+
+        // Инициализация Supabase клиента (ключи взяты из скриншотов проекта fkrnqhcktkiasuzdczco)
+        const SUPABASE_URL = 'https://fkrnqhcktkiasuzdczco.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_XhWWV5Z_x4-VVTIEixvhig_n0s_F...'; // Публичный ключ проекта
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         let currentUser = {
             id: 123456,
@@ -317,10 +316,8 @@
         }
 
         let dbUsers = {};
-        let dbTasks = JSON.parse(localStorage.getItem('cb_tasks')) || [
-            { id: 1, title: "Подписаться на канал Crypto Books", url: "https://t.me/", reward: 0.010, creator: 554706846 }
-        ];
-        let dbWithdrawals = JSON.parse(localStorage.getItem('cb_withdrawals')) || [];
+        let dbTasks = [];
+        let dbWithdrawals = [];
 
         const manifestUrl = 'https://crypto-books.pp.ua/tonconnect-manifest.json';
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
@@ -328,63 +325,67 @@
             buttonRootId: 'ton-connect'
         });
 
-        // Загрузка и синхронизация пользователя через Supabase
-        async function initUserFromCloud() {
-            let { data, error } = await supabaseClient
-                .from('users')
-                .select('*')
-                .eq('id', currentUser.id)
-                .maybeSingle();
-
-            if (!data) {
-                let newUser = { 
-                    id: currentUser.id, 
-                    name: currentUser.name, 
-                    balance: 0.100, 
-                    completed_tasks: 0 
-                };
-                await supabaseClient.from('users').insert([newUser]);
-                currentUser.balance = 0.100;
-                currentUser.completedTasks = 0;
-            } else {
-                currentUser.name = data.name;
-                currentUser.balance = parseFloat(data.balance);
-                currentUser.completedTasks = data.completed_tasks;
-            }
-
-            let { data: allUsers } = await supabaseClient.from('users').select('*');
-            if (allUsers) {
-                allUsers.forEach(u => {
-                    dbUsers[u.id] = { id: u.id, name: u.name, balance: parseFloat(u.balance), completedTasks: u.completed_tasks };
-                });
-            }
+        // Загрузка данных из базы Supabase при старте
+        async function initApp() {
+            await syncWithSupabase();
 
             if (currentUser.id === ADMIN_ID) {
                 document.getElementById('nav-admin').style.display = 'block';
             }
-
             updateUI();
         }
 
-        initUserFromCloud();
+        async function syncWithSupabase() {
+            try {
+                // 1. Загружаем пользователей
+                let { data: usersData, error: usersErr } = await supabaseClient.from('users').select('*');
+                if (!usersErr && usersData) {
+                    dbUsers = {};
+                    usersData.forEach(u => {
+                        dbUsers[u.id] = { id: u.id, name: u.name, balance: u.balance, completedTasks: u.completed_tasks || 0 };
+                    });
+                }
 
-        async function saveUserToCloud() {
-            dbUsers[currentUser.id] = { 
-                id: currentUser.id, 
-                name: currentUser.name, 
-                balance: currentUser.balance, 
-                completedTasks: currentUser.completedTasks 
-            };
+                // Проверяем текущего игрока
+                if (!dbUsers[currentUser.id]) {
+                    currentUser.balance = 0.100;
+                    currentUser.completedTasks = 0;
+                    dbUsers[currentUser.id] = { id: currentUser.id, name: currentUser.name, balance: currentUser.balance, completedTasks: currentUser.completedTasks };
+                    await supabaseClient.from('users').upsert({ id: currentUser.id, name: currentUser.name, balance: currentUser.balance, completed_tasks: currentUser.completedTasks });
+                } else {
+                    currentUser.balance = dbUsers[currentUser.id].balance;
+                    currentUser.completedTasks = dbUsers[currentUser.id].completedTasks;
+                }
 
-            await supabaseClient
-                .from('users')
-                .upsert({ 
-                    id: currentUser.id, 
-                    name: currentUser.name, 
-                    balance: currentUser.balance, 
-                    completed_tasks: currentUser.completedTasks 
-                });
+                // 2. Загружаем задания
+                let { data: tasksData, error: tasksErr } = await supabaseClient.from('tasks').select('*');
+                if (!tasksErr && tasksData && tasksData.length > 0) {
+                    dbTasks = tasksData.map(t => ({ id: t.id, title: t.title, url: t.url, reward: t.reward, creator: t.creator }));
+                } else {
+                    dbTasks = [
+                        { id: 1, title: "Подписаться на канал Crypto Books", url: "https://t.me/", reward: 0.010, creator: 554706846 }
+                    ];
+                }
+
+                // 3. Загружаем заявки на вывод
+                let { data: wData, error: wErr } = await supabaseClient.from('withdrawals').select('*');
+                if (!wErr && wData) {
+                    dbWithdrawals = wData.map(w => ({
+                        id: w.id,
+                        userId: w.user_id,
+                        userName: w.user_name,
+                        amount: w.amount,
+                        netAmount: w.net_amount,
+                        address: w.address,
+                        date: w.date
+                    }));
+                }
+            } catch (e) {
+                console.error("Ошибка синхронизации с Supabase:", e);
+            }
         }
+
+        initApp();
 
         function updateUI() {
             document.getElementById('user-balance').innerText = currentUser.balance.toFixed(3) + ' GRAM';
@@ -394,7 +395,10 @@
             document.getElementById('profile-completed').innerText = currentUser.completedTasks;
             document.getElementById('profile-available').innerText = dbTasks.length;
             
-            saveUserToCloud();
+            dbUsers[currentUser.id].balance = currentUser.balance;
+            dbUsers[currentUser.id].completedTasks = currentUser.completedTasks;
+            saveUserToDb(currentUser.id);
+
             renderTasks();
 
             if (currentUser.id === ADMIN_ID) {
@@ -402,12 +406,43 @@
             }
         }
 
-        function saveTasks() {
-            localStorage.setItem('cb_tasks', JSON.stringify(dbTasks));
+        async function saveUserToDb(userId) {
+            let u = dbUsers[userId];
+            if (!u) return;
+            await supabaseClient.from('users').upsert({
+                id: u.id,
+                name: u.name,
+                balance: u.balance,
+                completed_tasks: u.completedTasks
+            });
         }
 
-        function saveWithdrawals() {
-            localStorage.setItem('cb_withdrawals', JSON.stringify(dbWithdrawals));
+        async function saveTasksToDb() {
+            // Перезаписываем или обновляем задания в Supabase
+            // Для простоты удаляем старые и пишем актуальные, либо апсертим
+            for (let t of dbTasks) {
+                await supabaseClient.from('tasks').upsert({
+                    id: t.id,
+                    title: t.title,
+                    url: t.url,
+                    reward: t.reward,
+                    creator: t.creator
+                });
+            }
+        }
+
+        async function saveWithdrawalsToDb() {
+            for (let w of dbWithdrawals) {
+                await supabaseClient.from('withdrawals').upsert({
+                    id: w.id,
+                    user_id: w.userId,
+                    user_name: w.userName,
+                    amount: w.amount,
+                    net_amount: w.netAmount,
+                    address: w.address,
+                    date: w.date
+                });
+            }
         }
 
         function switchTab(tabName, element) {
@@ -451,7 +486,7 @@
             updateUI();
         }
 
-        function createNewTask() {
+        async function createNewTask() {
             let title = document.getElementById('new-task-title').value.trim();
             let url = document.getElementById('new-task-url').value.trim();
             let reward = parseFloat(document.getElementById('new-task-reward').value);
@@ -470,8 +505,12 @@
             }
 
             currentUser.balance -= reward;
-            dbTasks.push({ id: Date.now(), title, url, reward, creator: currentUser.id });
-            saveTasks();
+            let newTask = { id: Date.now(), title, url, reward, creator: currentUser.id };
+            dbTasks.push(newTask);
+            
+            await supabaseClient.from('tasks').insert([
+                { id: newTask.id, title: newTask.title, url: newTask.url, reward: newTask.reward, creator: newTask.creator }
+            ]);
 
             document.getElementById('new-task-title').value = '';
             document.getElementById('new-task-url').value = '';
@@ -521,7 +560,7 @@
             }
         }
 
-        function requestWithdrawal() {
+        async function requestWithdrawal() {
             let amount = parseFloat(document.getElementById('withdraw-amount').value);
             let address = document.getElementById('withdraw-address').value.trim();
 
@@ -542,7 +581,7 @@
             let netAmount = amount - fee;
 
             currentUser.balance -= amount;
-            dbWithdrawals.push({
+            let newWithdrawal = {
                 id: Date.now(),
                 userId: currentUser.id,
                 userName: currentUser.name,
@@ -550,13 +589,26 @@
                 netAmount: netAmount,
                 address: address,
                 date: new Date().toLocaleString()
-            });
-            saveWithdrawals();
+            };
+            dbWithdrawals.push(newWithdrawal);
+
+            await supabaseClient.from('withdrawals').insert([
+                {
+                    id: newWithdrawal.id,
+                    user_id: newWithdrawal.userId,
+                    user_name: newWithdrawal.userName,
+                    amount: newWithdrawal.amount,
+                    net_amount: newWithdrawal.netAmount,
+                    address: newWithdrawal.address,
+                    date: newWithdrawal.date
+                }
+            ]);
 
             alert(`Заявка на вывод ${amount} GRAM создана! С учетом комиссии (5%) вы получите ${netAmount.toFixed(3)} GRAM в течение 24 часов.`);
             updateUI();
         }
 
+        // Корректная инициализация AdsGram с обработкой ошибок
         let adController = null;
         if (window.AdsGram) {
             try {
@@ -634,24 +686,25 @@
             document.getElementById('admin-tasks-list').innerHTML = tasksListHtml;
         }
 
-        function adminApproveWithdraw(index) {
+        async function adminApproveWithdraw(index) {
+            let w = dbWithdrawals[index];
             dbWithdrawals.splice(index, 1);
-            saveWithdrawals();
+            await supabaseClient.from('withdrawals').delete().eq('id', w.id);
             renderAdminPanel();
-            alert('Заявка одобрена и помечена как выполненная.');
+            alert('Заявка одобрена и удалена из базы.');
         }
 
-        function adminRejectWithdraw(index) {
+        async function adminRejectWithdraw(index) {
             let w = dbWithdrawals[index];
             if (dbUsers[w.userId]) {
                 dbUsers[w.userId].balance += w.amount;
                 if (w.userId === currentUser.id) {
                     currentUser.balance = dbUsers[w.userId].balance;
                 }
-                saveUserToCloud();
+                saveUserToDb(w.userId);
             }
             dbWithdrawals.splice(index, 1);
-            saveWithdrawals();
+            await supabaseClient.from('withdrawals').delete().eq('id', w.id);
             renderAdminPanel();
             updateUI();
             alert('Заявка отклонена, средства возвращены на баланс пользователя.');
@@ -660,21 +713,20 @@
         async function adminUpdateBalance(userId) {
             let newBal = parseFloat(document.getElementById(`bal-${userId}`).value);
             if (!isNaN(newBal)) {
-                if (dbUsers[userId]) {
-                    dbUsers[userId].balance = newBal;
-                }
+                dbUsers[userId].balance = newBal;
                 if (userId === currentUser.id) {
                     currentUser.balance = newBal;
                 }
-                await supabaseClient.from('users').update({ balance: newBal }).eq('id', userId);
-                alert('Баланс пользователя обновлен в облаке!');
+                await saveUserToDb(userId);
+                alert('Баланс пользователя обновлен в базе!');
                 updateUI();
             }
         }
 
-        function adminDeleteTask(index) {
+        async function adminDeleteTask(index) {
+            let t = dbTasks[index];
             dbTasks.splice(index, 1);
-            saveTasks();
+            await supabaseClient.from('tasks').delete().eq('id', t.id);
             renderTasks();
             renderAdminPanel();
             alert('Задание удалено.');
