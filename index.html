@@ -515,9 +515,8 @@
         // Инициализация AdsGram SDK с UnitID: 49272
         let adController = null;
         try {
-            const adsgramLib = window.Adsgram || window.AdsGram;
-            if (adsgramLib) {
-                adController = adsgramLib.init({ blockId: "49272" });
+            if (window.Adsgram) {
+                adController = window.Adsgram.init({ blockId: "49272" });
             }
         } catch (e) {
             console.error("Adsgram init error:", e);
@@ -530,14 +529,11 @@
                     alert('Реклама просмотрена! Получено +0.005 GRAM.');
                     updateUI();
                 }).catch((err) => {
-                    console.log(err);
+                    console.log("Ad error:", err);
                     alert('Реклама была пропущена или произошла ошибка показа.');
                 });
             } else {
-                // Запасной режим, если SDK по какой-то причине не подгрузился
-                currentUser.balance += 0.005;
-                alert('Тестовый режим (AdsGram недоступен): получено +0.005 GRAM.');
-                updateUI();
+                alert('AdsGram SDK недоступен. Убедитесь, что приложение открыто в мобильном клиенте Telegram.');
             }
         }
 
