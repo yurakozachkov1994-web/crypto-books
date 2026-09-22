@@ -308,20 +308,11 @@
             currentUser.name = tg.initDataUnsafe.user.first_name || "Игрок";
         }
 
-        let dbUsers = JSON.parse(localStorage.getItem('cb_users')) || {};
-        if (!dbUsers[currentUser.id]) {
-            dbUsers[currentUser.id] = { id: currentUser.id, name: currentUser.name, balance: 0.100, completedTasks: 0 };
-        } else {
-            currentUser.balance = dbUsers[currentUser.id].balance;
-            currentUser.completedTasks = dbUsers[currentUser.id].completedTasks || 0;
-        }
-        saveUsers();
-
-        let dbTasks = JSON.parse(localStorage.getItem('cb_tasks')) || [
+        let dbUsers = {};
+        let dbTasks = [
             { id: 1, title: "Подписаться на канал Crypto Books", url: "https://t.me/", reward: 0.010, creator: 554706846 }
         ];
-
-        let dbWithdrawals = JSON.parse(localStorage.getItem('cb_withdrawals')) || [];
+        let dbWithdrawals = [];
 
         const manifestUrl = 'https://crypto-books.pp.ua/tonconnect-manifest.json';
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
@@ -329,7 +320,37 @@
             buttonRootId: 'ton-connect'
         });
 
-        updateUI();
+        // Загрузка данных из облака Telegram
+        function loadFromCloud() {
+            tg.CloudStorage.getItem('cb_users', (err, res) => {
+                if (!err && res) {
+                    try { dbUsers = JSON.parse(res); } catch(e) {}
+                }
+                if (!dbUsers[currentUser.id]) {
+                    dbUsers[currentUser.id] = { id: currentUser.id, name: currentUser.name, balance: 0.100, completedTasks: 0 };
+                }
+                currentUser.balance = dbUsers[currentUser.id].balance;
+                currentUser.completedTasks = dbUsers[currentUser.id].completedTasks || 0;
+                saveUsers();
+                updateUI();
+            });
+
+            tg.CloudStorage.getItem('cb_tasks', (err, res) => {
+                if (!err && res) {
+                    try { dbTasks = JSON.parse(res); } catch(e) {}
+                }
+                updateUI();
+            });
+
+            tg.CloudStorage.getItem('cb_withdrawals', (err, res) => {
+                if (!err && res) {
+                    try { dbWithdrawals = JSON.parse(res); } catch(e) {}
+                }
+                updateUI();
+            });
+        }
+
+        loadFromCloud();
 
         if (currentUser.id === ADMIN_ID) {
             document.getElementById('nav-admin').style.display = 'block';
@@ -343,8 +364,10 @@
             document.getElementById('profile-completed').innerText = currentUser.completedTasks;
             document.getElementById('profile-available').innerText = dbTasks.length;
             
-            dbUsers[currentUser.id].balance = currentUser.balance;
-            dbUsers[currentUser.id].completedTasks = currentUser.completedTasks;
+            if(dbUsers[currentUser.id]) {
+                dbUsers[currentUser.id].balance = currentUser.balance;
+                dbUsers[currentUser.id].completedTasks = currentUser.completedTasks;
+            }
             saveUsers();
             renderTasks();
 
@@ -354,15 +377,15 @@
         }
 
         function saveUsers() {
-            localStorage.setItem('cb_users', JSON.stringify(dbUsers));
+            tg.CloudStorage.setItem('cb_users', JSON.stringify(dbUsers));
         }
 
         function saveTasks() {
-            localStorage.setItem('cb_tasks', JSON.stringify(dbTasks));
+            tg.CloudStorage.setItem('cb_tasks', JSON.stringify(dbTasks));
         }
 
         function saveWithdrawals() {
-            localStorage.setItem('cb_withdrawals', JSON.stringify(dbWithdrawals));
+            tg.CloudStorage.setItem('cb_withdrawals', JSON.stringify(dbWithdrawals));
         }
 
         function switchTab(tabName, element) {
@@ -512,7 +535,6 @@
             updateUI();
         }
 
-        // Инициализация AdsGram SDK с UnitID: 49272
         let adController = null;
         try {
             if (window.Adsgram) {
