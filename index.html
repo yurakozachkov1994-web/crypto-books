@@ -347,7 +347,7 @@
                             <div class="item-card">
                                 <p><b>${u.name || 'Без имени'}</b> (ID: ${u.id})<br>Баланс: <span id="u-bal-${u.id}">${u.balance.toFixed(3)}</span> GRAM | Статус: ${u.is_banned ? '<span style="color:var(--danger-color)">Забанен</span>' : '<span style="color:var(--success-color)">Активен</span>'}</p>
                                 <div class="row-group">
-                                    <input type="number" id="u-new-bal-${u.id}" class="input-field" style="margin:0; padding:6px;" placeholder="Новый баланс" step="0.001">
+                                    <input type="number" id="u-new-bal-${u.id}" class="input-field" style="margin:0; padding:6px;" placeholder="+/- сумма (напр. 10 или -5)" step="0.001">
                                     <button class="btn" style="margin:0; padding:6px 12px; width:auto;" onclick="updateUserBalance('${u.id}')">Изменить</button>
                                 </div>
                                 <button class="btn ${u.is_banned ? 'btn-success' : 'btn-danger'}" style="padding:6px; margin-top:8px;" onclick="toggleUserBan('${u.id}', ${u.is_banned})">
@@ -452,15 +452,21 @@
         }
 
         async function updateUserBalance(userId) {
-            const newBalance = parseFloat(document.getElementById(`u-new-bal-${userId}`).value);
-            if (isNaN(newBalance)) {
-                tg.showAlert('Введите корректное число для баланса!');
+            const amountInput = document.getElementById(`u-new-bal-${userId}`);
+            const amount = parseFloat(amountInput.value);
+            
+            if (isNaN(amount)) {
+                tg.showAlert('Введите корректное число для изменения баланса!');
                 return;
             }
-            const res = await apiRequest(`/api/admin/users/${userId}/balance`, 'POST', { balance: newBalance });
-            if (res.error) tg.showAlert(res.error);
-            else {
-                tg.showAlert('Баланс пользователя успешно обновлен!');
+
+            // Отправляем сумму (положительную для начисления или отрицательную для списания)
+            const res = await apiRequest(`/api/admin/users/${userId}/balance`, 'POST', { amount });
+            if (res.error) {
+                tg.showAlert(res.error);
+            } else {
+                tg.showAlert('Баланс пользователя успешно скорректирован!');
+                amountInput.value = '';
                 loadData();
             }
         }
