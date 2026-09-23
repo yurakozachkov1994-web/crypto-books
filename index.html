@@ -278,7 +278,6 @@
         const initData = tg.initData || '';
         let userRefLink = '';
 
-        // Инициализация Adsgram SDK с вашим ID блока (49424)
         const adController = window.Adsgram ? window.Adsgram.init({ blockId: "49424" }) : null;
 
         async function apiRequest(path, method = 'GET', body = null) {
@@ -427,7 +426,6 @@
             }
         }
 
-        // Интеграция с Adsgram для получения бонуса за просмотр рекламы
         async function claimAdReward() {
             if (!adController) {
                 tg.showAlert('Рекламный SDK не инициализирован.');
@@ -444,7 +442,6 @@
                     loadData();
                 }
             } catch (err) {
-                console.log("Реклама не была досмотрена:", err);
                 tg.showAlert('Чтобы получить бонус, нужно досмотреть рекламу до конца!');
             }
         }
