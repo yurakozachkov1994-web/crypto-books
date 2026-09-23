@@ -62,7 +62,7 @@
 
   <section id="wallet" class="page">
     <h2>Кошелёк</h2>
-    <div class="card"><b>Пополнение GRAM</b><p class="muted small">Оплата идет на кошелек: <code style="font-size:11px; word-break:break-all;">UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh</code>[cite: 10]. После отправки транзакции через TON Connect Worker автоматически проверяет блокчейн и зачисляет средства[cite: 10].</p>
+    <div class="card"><b>Пополнение GRAM</b><p class="muted small">Оплата идет на кошелек: <code style="font-size:11px; word-break:break-all;">UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh</code>[cite: 10]. После отправки транзакции через TON Connect Worker автоматически проверяет блокчейн[cite: 10].</p>
       <label>Сумма<input id="depositAmount" type="number" min="0.1" step="0.1" value="1"></label>
       <div id="ton-connect" style="margin:10px 0"></div>
       <button onclick="deposit()">💎 Оплатить GRAM</button>
@@ -98,40 +98,118 @@
 </nav>
 
 <script>
-const API_URL = "https://YOUR-WORKER.workers.dev"; // Замените на URL вашего Cloudflare Worker
-const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
+// ВСТАВЬТЕ СЮДА РЕАЛЬНЫЙ URL ВАШЕГО CLOUDFLARE WORKER (без слеша на конце)
+const API_URL = "https://crypto-farm-api.yurakozachkov1994.workers.dev";
+
+const tg = window.Telegram.WebApp; 
+try { tg.ready(); tg.expand(); } catch(e) {}
+
 let state = {user:null,tasks:[],ref:null,admin:null};
 let adController = null;
 let tonConnectUI = null;
 let activeDepositTimer = null;
 
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-async function api(path, body){const r=await fetch(API_URL+path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':tg.initData},body:body?JSON.stringify(body):undefined});const j=await r.json();if(!r.ok)throw new Error(j.error||'Ошибка API');return j}
-function showPage(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(p).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===p))}
-function toggle(id){document.getElementById(id).classList.toggle('hidden')}
+
+async function api(path, body){
+  const initData = tg.initData || '';
+  const r = await fetch(API_URL + path, {
+    method: body ? 'POST' : 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': initData
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const text = await r.text();
+  let j;
+  try { j = JSON.parse(text); } catch(e) { throw new Error('Ошибка ответа сервера: ' + text); }
+  if(!r.ok) throw new Error(j.error || 'Ошибка API');
+  return j;
+}
+
+function showPage(p){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  const target = document.getElementById(p);
+  if(target) target.classList.add('active');
+  document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active', x.dataset.page === p));
+}
+
+function toggle(id){
+  const el = document.getElementById(id);
+  if(el) el.classList.toggle('hidden');
+}
+
 function render(){
- const u=state.user||{}; document.getElementById('userName').textContent=u.name||'Пользователь';document.getElementById('balance').textContent=(+u.balance||0).toFixed(3)+' GRAM';
- document.getElementById('profileCard').innerHTML=`<b>${esc(u.name||'Пользователь')}</b><p class="muted">ID: ${u.id||'—'}</p><p>Баланс: <b>${(+u.balance||0).toFixed(3)} GRAM</b></p><p>Выполнено заданий: ${u.completed_tasks||0}</p>`;
- document.getElementById('tasksList').innerHTML=state.tasks.length?state.tasks.map(t=>`<div class="card task"><div><h3>${esc(t.title)}</h3><p>${esc(t.type)} · +${(+t.reward).toFixed(3)} GRAM</p></div><button onclick="startTask('${t.id}')">Открыть</button></div>`).join(''):'<div class="card muted">Активных заданий пока нет.</div>';
- if(state.ref){document.getElementById('refLink').textContent=state.ref.link;document.getElementById('refCount').textContent=state.ref.count||0;document.getElementById('refHistory').innerHTML=(state.ref.history||[]).map(x=>`<div class="card small">${esc(x.description)} <b>+${(+x.amount).toFixed(3)}</b></div>`).join('')}
- const admin=state.admin;if(admin){document.getElementById('adminNav').classList.remove('hidden');document.getElementById('adminCreateBtn').classList.remove('hidden');document.getElementById('adminStats').innerHTML=`Пользователей: <b>${admin.users}</b><br>Заданий: <b>${admin.tasks}</b><br>Заявок на вывод: <b>${admin.withdrawals}</b>`;document.getElementById('adminDeposits').innerHTML=admin.deposit_items.map(d=>`<div class="card"><b>Пополнение ${d.amount} GRAM</b><p class="small">${esc(d.user_name)} · ${d.id}</p><button onclick="approveDeposit('${d.id}')">Подтвердить</button> <button class="danger" onclick="rejectDeposit('${d.id}')">Отклонить</button></div>`).join('')||'';document.getElementById('adminWithdrawals').innerHTML=admin.withdrawal_items.map(w=>`<div class="card"><b>${esc(w.user_name)}</b><p>${w.amount} GRAM → ${esc(w.address)}</p><button onclick="approveWithdraw('${w.id}')">Одобрить</button> <button class="danger" onclick="rejectWithdraw('${w.id}')">Отклонить</button></div>`).join('')||'';document.getElementById('adminUsers').innerHTML='<b>Последние пользователи</b>'+admin.user_items.map(u=>`<p class="small">${esc(u.name)} · ${u.id} · ${(+u.balance).toFixed(3)} GRAM</p>`).join('')}}
+ const u = state.user || {}; 
+ document.getElementById('userName').textContent = u.name || 'Пользователь';
+ document.getElementById('balance').textContent = (+u.balance || 0).toFixed(3) + ' GRAM';
+ 
+ const profileCard = document.getElementById('profileCard');
+ if(profileCard) {
+   profileCard.innerHTML = `<b>${esc(u.name||'Пользователь')}</b><p class="muted">ID: ${u.id||'—'}</p><p>Баланс: <b>${(+u.balance||0).toFixed(3)} GRAM</b></p><p>Выполнено заданий: ${u.completed_tasks||0}</p>`;
+ }
+ 
+ const tasksList = document.getElementById('tasksList');
+ if(tasksList) {
+   tasksList.innerHTML = state.tasks.length ? state.tasks.map(t=>`<div class="card task"><div><h3>${esc(t.title)}</h3><p>${esc(t.type)} · +${(+t.reward).toFixed(3)} GRAM</p></div><button onclick="startTask('${t.id}')">Открыть</button></div>`).join('') : '<div class="card muted">Активных заданий пока нет.</div>';
+ }
+ 
+ if(state.ref){
+   document.getElementById('refLink').textContent = state.ref.link || '—';
+   document.getElementById('refCount').textContent = state.ref.count || 0;
+   const refHistory = document.getElementById('refHistory');
+   if(refHistory) {
+     refHistory.innerHTML = (state.ref.history||[]).map(x=>`<div class="card small">${esc(x.description)} <b>+${(+x.amount).toFixed(3)}</b></div>`).join('');
+   }
+ }
+
+ const admin = state.admin;
+ if(admin){
+   const adminNav = document.getElementById('adminNav');
+   const adminCreateBtn = document.getElementById('adminCreateBtn');
+   if(adminNav) adminNav.classList.remove('hidden');
+   if(adminCreateBtn) adminCreateBtn.classList.remove('hidden');
+   
+   const adminStats = document.getElementById('adminStats');
+   if(adminStats) adminStats.innerHTML = `Пользователей: <b>${admin.users}</b><br>Заданий: <b>${admin.tasks}</b><br>Заявок на вывод: <b>${admin.withdrawals}</b>`;
+   
+   const adminDeposits = document.getElementById('adminDeposits');
+   if(adminDeposits) adminDeposits.innerHTML = (admin.deposit_items||[]).map(d=>`<div class="card"><b>Пополнение ${d.amount} GRAM</b><p class="small">${esc(d.user_name)} · ${d.id}</p><button onclick="approveDeposit('${d.id}')">Подтвердить</button> <button class="danger" onclick="rejectDeposit('${d.id}')">Отклонить</button></div>`).join('');
+   
+   const adminWithdrawals = document.getElementById('adminWithdrawals');
+   if(adminWithdrawals) adminWithdrawals.innerHTML = (admin.withdrawal_items||[]).map(w=>`<div class="card"><b>${esc(w.user_name)}</b><p>${w.amount} GRAM → ${esc(w.address)}</p><button onclick="approveWithdraw('${w.id}')">Одобрить</button> <button class="danger" onclick="rejectWithdraw('${w.id}')">Отклонить</button></div>`).join('');
+   
+   const adminUsers = document.getElementById('adminUsers');
+   if(adminUsers) adminUsers.innerHTML = '<b>Последние пользователи</b>' + (admin.user_items||[]).map(u=>`<p class="small">${esc(u.name)} · ${u.id} · ${(+u.balance).toFixed(3)} GRAM</p>`).join('');
+ }
 }
 
 async function initTonConnect(){
   if(!window.TON_CONNECT_UI) return;
   try{
-    tonConnectUI=new TON_CONNECT_UI.TonConnectUI({manifestUrl:new URL('tonconnect-manifest.json',location.href).href,buttonRootId:'ton-connect'});
-  }catch(e){console.warn('TON Connect:',e)}
+    if(!tonConnectUI) {
+      tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+        manifestUrl: new URL('tonconnect-manifest.json', location.href).href,
+        buttonRootId: 'ton-connect'
+      });
+    }
+  }catch(e){console.warn('TON Connect:', e)}
 }
 
-function bytesToBase64(bytes){let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s)}
+function bytesToBase64(bytes){
+  let s=''; for(const b of bytes) s += String.fromCharCode(b);
+  return btoa(s);
+}
 
 function commentPayload(comment){
-  const data=new TextEncoder().encode(comment), all=new Uint8Array(4+data.length);all.set(data,4);
-  const cell=new Uint8Array(2+all.length);cell[0]=0;cell[1]=all.length*2;cell.set(all,2);
-  const boc=new Uint8Array(4+7+cell.length);
-  let p=0;const put=v=>boc[p++]=v;
-  boc.set([0xb5,0xee,0x9c,0x72],p);p+=4;put(1);put(1);put(1);put(1);put(0);put(cell.length);put(0);boc.set(cell,p);
+  const data = new TextEncoder().encode(comment), all = new Uint8Array(4 + data.length);
+  all.set(data, 4);
+  const cell = new Uint8Array(2 + all.length);
+  cell[0] = 0; cell[1] = all.length * 2; cell.set(all, 2);
+  const boc = new Uint8Array(4 + 7 + cell.length);
+  let p = 0; const put = v => boc[p++] = v;
+  boc.set([0xb5, 0xee, 0x9c, 0x72], p); p += 4; put(1); put(1); put(1); put(1); put(0); put(cell.length); put(0); boc.set(cell, p);
   return bytesToBase64(boc);
 }
 
@@ -175,31 +253,115 @@ async function deposit(){
 
 async function waitDeposit(id){
   clearInterval(activeDepositTimer);
-  const el=document.getElementById('depositStatus');
-  el.textContent='⏳ Ждём подтверждение блокчейна…';
-  let tries=0;
-  activeDepositTimer=setInterval(async()=>{
+  const el = document.getElementById('depositStatus');
+  el.textContent = '⏳ Ждём подтверждение блокчейна…';
+  let tries = 0;
+  activeDepositTimer = setInterval(async()=>{
     tries++;
     try{
-      const d=await api('/api/deposits/'+id+'/status');
-      if(d.status==='confirmed'){
-        clearInterval(activeDepositTimer);el.innerHTML=`<span class="ok">✅ Пополнение подтверждено: +${(+d.amount).toFixed(3)} GRAM</span>`;await load();return;
+      const d = await api('/api/deposits/' + id + '/status');
+      if(d.status === 'confirmed'){
+        clearInterval(activeDepositTimer);
+        el.innerHTML = `<span class="ok">✅ Пополнение подтверждено: +${(+d.amount).toFixed(3)} GRAM</span>`;
+        await load();
+        return;
       }
-      if(d.status==='rejected'){clearInterval(activeDepositTimer);el.textContent='❌ Заявка отклонена';return}
-      if(tries>=60){clearInterval(activeDepositTimer);el.textContent='⏳ Транзакция ещё не найдена. Можно открыть приложение позже — Worker продолжит автоматическую проверку.'}
-    }catch(e){if(tries>=60){clearInterval(activeDepositTimer);el.textContent='Проверка временно недоступна. Попробуйте обновить приложение.'}}
-  },5000);
+      if(d.status === 'rejected'){
+        clearInterval(activeDepositTimer);
+        el.textContent = '❌ Заявка отклонена';
+        return;
+      }
+      if(tries >= 60){
+        clearInterval(activeDepositTimer);
+        el.textContent = '⏳ Транзакция ещё не найдена. Worker продолжает фоновую проверку.';
+      }
+    }catch(e){
+      if(tries >= 60){ clearInterval(activeDepositTimer); el.textContent = 'Проверка временно недоступна.'; }
+    }
+  }, 5000);
 }
 
-async function load(){try{const j=await api('/api/bootstrap');state=j;render();try{adController=window.Adsgram?.init({blockId:"49272"})}catch(e){console.warn(e)}await initTonConnect()}catch(e){alert(e.message)}}
-async function startTask(id){try{const j=await api('/api/tasks/start',{task_id:id});if(j.url)tg.openTelegramLink(j.url);else if(j.url)location.href=j.url;await new Promise(r=>setTimeout(r,2500));if(confirm('Вы выполнили задание? Нажмите OK для проверки.')){const c=await api('/api/tasks/complete',{task_id:id});alert(c.message);await load()}}catch(e){alert(e.message)}}
-async function createTask(){try{await api('/api/admin/tasks',{title:tTitle.value,type:tType.value,chat_username:tChat.value,url:tUrl.value,reward:+tReward.value});alert('Задание создано');toggle('taskForm');load()}catch(e){alert(e.message)}}
-async function withdraw(){try{const j=await api('/api/withdrawals',{amount:+withdrawAmount.value,address:withdrawAddress.value.trim()});alert(j.message);load()}catch(e){alert(e.message)}}
-async function approveDeposit(id){try{await api('/api/admin/deposits/'+id,{status:'approved'});load()}catch(e){alert(e.message)}}
-async function rejectDeposit(id){try{await api('/api/admin/deposits/'+id,{status:'rejected'});load()}catch(e){alert(e.message)}}
-async function approveWithdraw(id){try{await api('/api/admin/withdrawals/'+id,{status:'approved'});load()}catch(e){alert(e.message)}}
-async function rejectWithdraw(id){try{await api('/api/admin/withdrawals/'+id,{status:'rejected'});load()}catch(e){alert(e.message)}}
-async function showAd(){if(!adController){alert('Реклама пока недоступна. Проверьте Block ID AdsGram.');return}try{await adController.show();const j=await api('/api/ads/reward',{});alert(j.message);load()}catch(e){alert('Реклама не засчитана: '+e.message)}}
+async function load(){
+  try {
+    const j = await api('/api/bootstrap');
+    state = j;
+    render();
+    try { adController = window.Adsgram?.init({ blockId: "49272" }); } catch(e) { console.warn(e); }
+    await initTonConnect();
+  } catch(e) {
+    console.error(e);
+    // Демо-режим или сообщение, если бот запущен вне Телеграма
+    document.getElementById('userName').textContent = 'Гость / Ошибка связи';
+  }
+}
+
+async function startTask(id){
+  try {
+    const j = await api('/api/tasks/start', { task_id: id });
+    if(j.url) {
+      try { tg.openTelegramLink(j.url); } catch(e) { window.open(j.url, '_blank'); }
+    }
+    await new Promise(r => setTimeout(r, 2500));
+    if(confirm('Вы выполнили задание? Нажмите OK для проверки.')){
+      const c = await api('/api/tasks/complete', { task_id: id });
+      alert(c.message);
+      await load();
+    }
+  } catch(e){
+    alert(e.message);
+  }
+}
+
+async function createTask(){
+  try {
+    await api('/api/admin/tasks', {
+      title: document.getElementById('tTitle').value,
+      type: document.getElementById('tType').value,
+      chat_username: document.getElementById('tChat').value,
+      url: document.getElementById('tUrl').value,
+      reward: +document.getElementById('tReward').value
+    });
+    alert('Задание создано');
+    toggle('taskForm');
+    load();
+  } catch(e){
+    alert(e.message);
+  }
+}
+
+async function withdraw(){
+  try {
+    const j = await api('/api/withdrawals', {
+      amount: +document.getElementById('withdrawAmount').value,
+      address: document.getElementById('withdrawAddress').value.trim()
+    });
+    alert(j.message);
+    load();
+  } catch(e){
+    alert(e.message);
+  }
+}
+
+async function approveDeposit(id){ try{ await api('/api/admin/deposits/'+id, {status:'approved'}); load(); }catch(e){alert(e.message)} }
+async function rejectDeposit(id){ try{ await api('/api/admin/deposits/'+id, {status:'rejected'}); load(); }catch(e){alert(e.message)} }
+async function approveWithdraw(id){ try{ await api('/api/admin/withdrawals/'+id, {status:'approved'}); load(); }catch(e){alert(e.message)} }
+async function rejectWithdraw(id){ try{ await api('/api/admin/withdrawals/'+id, {status:'rejected'}); load(); }catch(e){alert(e.message)} }
+
+async function showAd(){
+  if(!adController){
+    alert('Реклама пока недоступна или не инициализировалась.');
+    return;
+  }
+  try {
+    await adController.show();
+    const j = await api('/api/ads/reward', {});
+    alert(j.message);
+    load();
+  } catch(e) {
+    alert('Реклама не засчитана: ' + e.message);
+  }
+}
+
 load();
 </script>
 </body>
