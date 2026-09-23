@@ -1,362 +1,136 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>Crypto Farm</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
-  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-  <style>
-    :root{--bg:var(--tg-theme-bg-color,#0f1115);--card:var(--tg-theme-secondary-bg-color,#191c23);--text:var(--tg-theme-text-color,#fff);--muted:var(--tg-theme-hint-color,#8d93a1);--accent:#19c37d;--danger:#ef5350;--line:rgba(255,255,255,.08)}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,sans-serif;padding-bottom:82px}
-    .wrap{max-width:620px;margin:auto;padding:16px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-    .brand{font-weight:800;font-size:22px}.badge{font-size:12px;color:var(--muted)}
-    .card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px;border:1px solid var(--line)}
-    .balance{font-size:32px;font-weight:850;margin:7px 0}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    button{border:0;border-radius:12px;padding:12px 14px;font-weight:750;background:var(--accent);color:#06130d;cursor:pointer}
-    button.secondary{background:transparent;color:var(--text);border:1px solid var(--line)}button.danger{background:var(--danger);color:#fff}
-    .task{display:flex;gap:12px;align-items:center;justify-content:space-between}.task h3{margin:0 0 4px;font-size:15px}.task p{margin:0;color:var(--muted);font-size:12px}
-    input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);margin-top:6px}
-    label{display:block;font-size:12px;color:var(--muted);margin:10px 0}.nav{position:fixed;z-index:20;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--line);display:flex;justify-content:center}
-    .nav button{flex:1;max-width:125px;background:transparent;color:var(--muted);border-radius:0;padding:9px 4px;font-size:11px}.nav button.active{color:var(--accent)}
-    .page{display:none}.page.active{display:block}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.hidden{display:none}
-    .small{font-size:12px}.ok{color:var(--accent)}.warn{color:#ffcc66}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Farm</title>
+    <!-- Подключаем библиотеку Telegram Web App -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        /* Базовые стили под тему Telegram */
+        body {
+            font-family: sans-serif;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            padding: 16px;
+            margin: 0;
+        }
+        .card {
+            background-color: var(--tg-theme-secondary-bg-color, #f1f1f1);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .btn {
+            background-color: var(--tg-theme-button-color, #3390ec);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .header { text-align: center; margin-bottom: 20px; }
+        .balance { font-size: 24px; font-weight: bold; color: #4caf50; }
+    </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top"><div class="brand">🌱 Crypto Farm</div><div id="userName" class="badge">Игрок</div></div>
 
-  <section id="home" class="page active">
-    <div class="card">
-      <div class="muted">Ваш баланс</div><div id="balance" class="balance">0.000 GRAM</div>
-      <div class="muted small">Зарабатывайте на заданиях, приглашайте друзей и получайте бонусы.</div>
+    <div class="header">
+        <h2 id="user-name">Привет, Игрок!</h2>
+        <div class="card">
+            <p>Ваш баланс:</p>
+            <div class="balance"><span id="balance">0.00</span> GRAM</div>
+            <p style="font-size: 12px; color: gray;">Выполнено заданий: <span id="completed-tasks">0</span></p>
+        </div>
     </div>
-    <div class="grid">
-      <button onclick="showPage('tasks')">📋 Задания</button>
-      <button onclick="showAd()">🎁 Реклама</button>
-      <button onclick="showPage('ref')">👥 Рефералы</button>
-      <button onclick="showPage('wallet')">💳 Кошелёк</button>
+
+    <h3>Доступные задания</h3>
+    <div id="tasks-list">
+        <p>Загрузка заданий...</p>
     </div>
-  </section>
 
-  <section id="tasks" class="page">
-    <div class="row"><h2>Задания</h2><button id="adminCreateBtn" class="secondary hidden" onclick="toggle('taskForm')">➕ Создать</button></div>
-    <div id="taskForm" class="card hidden">
-      <b>Новое задание</b>
-      <label>Название<input id="tTitle" placeholder="Подписаться на Telegram-канал"></label>
-      <label>Тип<select id="tType"><option value="telegram_channel">Telegram-канал</option><option value="telegram_group">Telegram-группа</option></select></label>
-      <label>Username чата<input id="tChat" placeholder="@my_channel"></label>
-      <label>Ссылка<input id="tUrl" placeholder="https://t.me/my_channel"></label>
-      <label>Награда<input id="tReward" type="number" min="0.001" step="0.001" value="0.01"></label>
-      <button onclick="createTask()">Опубликовать</button>
-    </div>
-    <div id="tasksList"></div>
-  </section>
+    <script>
+        // Инициализируем Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Разворачиваем на весь экран
 
-  <section id="wallet" class="page">
-    <h2>Кошелёк</h2>
-    <div class="card"><b>Пополнение GRAM</b><p class="muted small">Оплата идет на кошелек: <code style="font-size:11px; word-break:break-all;">UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh</code>.</p>
-      <label>Сумма<input id="depositAmount" type="number" min="0.1" step="0.1" value="1"></label>
-      <div id="ton-connect" style="margin:10px 0"></div>
-      <button onclick="deposit()">💎 Оплатить GRAM</button>
-      <div id="depositStatus" class="small muted" style="margin-top:10px"></div>
-    </div>
-    <div class="card"><b>Вывод</b><label>Сумма<input id="withdrawAmount" type="number" min="1" step="0.1" value="1"></label>
-      <label>TON-адрес<input id="withdrawAddress" placeholder="UQ..."></label><button class="danger" onclick="withdraw()">Запросить вывод</button>
-    </div>
-  </section>
+        // ССЫЛКА НА ВАШ WORKER В CLOUDFLARE
+        const API_URL = "https://crypto-farm-api.yurakozachkov1994.workers.dev";
+        
+        // Получаем данные инициализации (защита и авторизация)
+        const initData = tg.initData || '';
 
-  <section id="ref" class="page">
-    <h2>Реферальная система</h2>
-    <div class="card"><div class="muted">Ваша ссылка</div><p id="refLink" style="word-break:break-all">—</p><div class="grid"><div><b id="refCount">0</b><div class="muted small">приглашено</div></div><div><b>10%</b><div class="muted small">от пополнений</div></div><div><b>15%</b><div class="muted small">от наград за задания</div></div></div></div>
-    <div id="refHistory"></div>
-  </section>
-
-  <section id="profile" class="page">
-    <h2>Профиль</h2><div class="card" id="profileCard"></div>
-  </section>
-
-  <section id="admin" class="page">
-    <h2>Админ-панель</h2><div id="adminStats" class="card"></div><div id="adminDeposits"></div><div id="adminWithdrawals"></div><div id="adminUsers" class="card"></div>
-  </section>
-</div>
-
-<nav class="nav">
-  <button onclick="showPage('home')" data-page="home">🏠<br>Главная</button>
-  <button onclick="showPage('tasks')" data-page="tasks">📋<br>Задания</button>
-  <button onclick="showPage('wallet')" data-page="wallet">💳<br>Кошелёк</button>
-  <button onclick="showPage('ref')" data-page="ref">👥<br>Рефералы</button>
-  <button onclick="showPage('profile')" data-page="profile">👤<br>Профиль</button>
-  <button id="adminNav" class="hidden" onclick="showPage('admin')" data-page="admin">⚙️<br>Админ</button>
-</nav>
-
-<script>
-const API_URL = "https://crypto-farm-api.yurakozachkov1994.workers.dev";
-
-const tg = window.Telegram?.WebApp; 
-try { tg?.ready(); tg?.expand(); } catch(e) {}
-
-let state = {user:{name: tg?.initDataUnsafe?.user?.first_name || 'Игрок', balance: 0}, tasks:[], ref:null, admin:null};
-let adController = null;
-let tonConnectUI = null;
-let activeDepositTimer = null;
-
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-
-async function api(path, body){
-  const initData = tg?.initData || '';
-  const r = await fetch(API_URL + path, {
-    method: body ? 'POST' : 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Telegram-Init-Data': initData
-    },
-    body: body ? JSON.stringify(body) : undefined
-  });
-  const text = await r.text();
-  let j;
-  try { j = JSON.parse(text); } catch(e) { throw new Error('Ошибка сервера: ' + text); }
-  if(!r.ok) throw new Error(j.error || 'Ошибка API');
-  return j;
-}
-
-function showPage(p){
-  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
-  const target = document.getElementById(p);
-  if(target) target.classList.add('active');
-  document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active', x.dataset.page === p));
-}
-
-function toggle(id){
-  const el = document.getElementById(id);
-  if(el) el.classList.toggle('hidden');
-}
-
-function render(){
- const u = state.user || {}; 
- document.getElementById('userName').textContent = u.name || 'Игрок';
- document.getElementById('balance').textContent = (+u.balance || 0).toFixed(3) + ' GRAM';
- 
- const profileCard = document.getElementById('profileCard');
- if(profileCard) {
-   profileCard.innerHTML = `<b>${esc(u.name||'Игрок')}</b><p class="muted">ID: ${u.id||'—'}</p><p>Баланс: <b>${(+u.balance||0).toFixed(3)} GRAM</b></p><p>Выполнено заданий: ${u.completed_tasks||0}</p>`;
- }
- 
- const tasksList = document.getElementById('tasksList');
- if(tasksList) {
-   tasksList.innerHTML = state.tasks.length ? state.tasks.map(t=>`<div class="card task"><div><h3>${esc(t.title)}</h3><p>${esc(t.type)} · +${(+t.reward).toFixed(3)} GRAM</p></div><button onclick="startTask('${t.id}')">Открыть</button></div>`).join('') : '<div class="card muted">Активных заданий пока нет.</div>';
- }
- 
- if(state.ref){
-   document.getElementById('refLink').textContent = state.ref.link || '—';
-   document.getElementById('refCount').textContent = state.ref.count || 0;
-   const refHistory = document.getElementById('refHistory');
-   if(refHistory) {
-     refHistory.innerHTML = (state.ref.history||[]).map(x=>`<div class="card small">${esc(x.description)} <b>+${(+x.amount).toFixed(3)}</b></div>`).join('');
-   }
- }
-
- const admin = state.admin;
- if(admin){
-   const adminNav = document.getElementById('adminNav');
-   const adminCreateBtn = document.getElementById('adminCreateBtn');
-   if(adminNav) adminNav.classList.remove('hidden');
-   if(adminCreateBtn) adminCreateBtn.classList.remove('hidden');
-   
-   const adminStats = document.getElementById('adminStats');
-   if(adminStats) adminStats.innerHTML = `Пользователей: <b>${admin.users}</b><br>Заданий: <b>${admin.tasks}</b><br>Заявок на вывод: <b>${admin.withdrawals}</b>`;
-   
-   const adminDeposits = document.getElementById('adminDeposits');
-   if(adminDeposits) adminDeposits.innerHTML = (admin.deposit_items||[]).map(d=>`<div class="card"><b>Пополнение ${d.amount} GRAM</b><p class="small">${esc(d.user_name)} · ${d.id}</p><button onclick="approveDeposit('${d.id}')">Подтвердить</button> <button class="danger" onclick="rejectDeposit('${d.id}')">Отклонить</button></div>`).join('');
-   
-   const adminWithdrawals = document.getElementById('adminWithdrawals');
-   if(adminWithdrawals) adminWithdrawals.innerHTML = (admin.withdrawal_items||[]).map(w=>`<div class="card"><b>${esc(w.user_name)}</b><p>${w.amount} GRAM → ${esc(w.address)}</p><button onclick="approveWithdraw('${w.id}')">Одобрить</button> <button class="danger" onclick="rejectWithdraw('${w.id}')">Отклонить</button></div>`).join('');
-   
-   const adminUsers = document.getElementById('adminUsers');
-   if(adminUsers) adminUsers.innerHTML = '<b>Последние пользователи</b>' + (admin.user_items||[]).map(u=>`<p class="small">${esc(u.name)} · ${u.id} · ${(+u.balance).toFixed(3)} GRAM</p>`).join('');
- }
-}
-
-async function initTonConnect(){
-  if(!window.TON_CONNECT_UI) return;
-  try{
-    if(!tonConnectUI) {
-      tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-        manifestUrl: new URL('tonconnect-manifest.json', location.href).href,
-        buttonRootId: 'ton-connect'
-      });
-    }
-  }catch(e){console.warn('TON Connect:', e)}
-}
-
-function bytesToBase64(bytes){
-  let s=''; for(const b of bytes) s += String.fromCharCode(b);
-  return btoa(s);
-}
-
-function commentPayload(comment){
-  const data = new TextEncoder().encode(comment), all = new Uint8Array(4 + data.length);
-  all.set(data, 4);
-  const cell = new Uint8Array(2 + all.length);
-  cell[0] = 0; cell[1] = all.length * 2; cell.set(all, 2);
-  const boc = new Uint8Array(4 + 7 + cell.length);
-  let p = 0; const put = v => boc[p++] = v;
-  boc.set([0xb5, 0xee, 0x9c, 0x72], p); p += 4; put(1); put(1); put(1); put(1); put(0); put(cell.length); put(0); boc.set(cell, p);
-  return bytesToBase64(boc);
-}
-
-async function deposit(){
-  try {
-    const amountVal = +document.getElementById('depositAmount').value;
-    if(!amountVal || amountVal <= 0) { alert('Введите корректную сумму'); return; }
-    
-    const res = await api('/api/deposits', { amount: amountVal });
-    const { id, reference, amount_nano } = res;
-    
-    if(!tonConnectUI || !tonConnectUI.connected) {
-      alert('Пожалуйста, подключите кошелек через кнопку TON Connect во вкладке Кошелёк.');
-      return;
-    }
-
-    const recipientAddress = "UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh";
-    const payloadB64 = commentPayload(reference);
-
-    const transaction = {
-      validUntil: Math.floor(Date.now() / 1000) + 600,
-      messages: [
-        {
-          address: recipientAddress,
-          amount: amount_nano,
-          payload: payloadB64
+        // Универсальная функция для запросов к серверу
+        async function apiRequest(path, method = 'GET', body = null) {
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Telegram-Init-Data': initData
+                }
+            };
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+            const response = await fetch(`${API_URL}${path}`, options);
+            return await response.json();
         }
-      ]
-    };
 
-    document.getElementById('depositStatus').textContent = '⏳ Подтвердите транзакцию в кошельке...';
-    await tonConnectUI.sendTransaction(transaction);
-    
-    document.getElementById('depositStatus').textContent = '⏳ Транзакция отправлена. Ожидаем подтверждение блокчейна...';
-    waitDeposit(id);
-  } catch(e) {
-    alert('Ошибка пополнения: ' + e.message);
-    document.getElementById('depositStatus').textContent = '';
-  }
-}
+        // Функция загрузки стартовых данных
+        async function loadBootstrap() {
+            try {
+                const data = await apiRequest('/api/bootstrap');
+                
+                if (data.user) {
+                    document.getElementById('user-name').innerText = `Привет, ${data.user.name}!`;
+                    document.getElementById('balance').innerText = data.user.balance.toFixed(3);
+                    document.getElementById('completed-tasks').innerText = data.user.completed_tasks;
+                }
 
-async function waitDeposit(id){
-  clearInterval(activeDepositTimer);
-  const el = document.getElementById('depositStatus');
-  el.textContent = '⏳ Ждём подтверждение блокчейна…';
-  let tries = 0;
-  activeDepositTimer = setInterval(async()=>{
-    tries++;
-    try{
-      const d = await api('/api/deposits/' + id + '/status');
-      if(d.status === 'confirmed'){
-        clearInterval(activeDepositTimer);
-        el.innerHTML = `<span class="ok">✅ Пополнение подтверждено: +${(+d.amount).toFixed(3)} GRAM</span>`;
-        await load();
-        return;
-      }
-      if(d.status === 'rejected'){
-        clearInterval(activeDepositTimer);
-        el.textContent = '❌ Заявка отклонена';
-        return;
-      }
-      if(tries >= 60){
-        clearInterval(activeDepositTimer);
-        el.textContent = '⏳ Транзакция ещё не найдена.';
-      }
-    }catch(e){
-      if(tries >= 60){ clearInterval(activeDepositTimer); el.textContent = 'Проверка временно недоступна.'; }
-    }
-  }, 5000);
-}
+                const tasksContainer = document.getElementById('tasks-list');
+                if (data.tasks && data.tasks.length > 0) {
+                    tasksContainer.innerHTML = data.tasks.map(task => `
+                        <div class="card">
+                            <b>${task.title}</b><br>
+                            <span style="color: #ff9800; font-weight: bold;">+${task.reward} GRAM</span><br>
+                            <button class="btn" onclick="completeTask('${task.id}')">Проверить подписку</button>
+                        </div>
+                    `).join('');
+                } else {
+                    tasksContainer.innerHTML = '<p>Пока нет новых заданий.</p>';
+                }
 
-async function load(){
-  try {
-    const j = await api('/api/bootstrap');
-    state = j;
-    render();
-  } catch(e) {
-    console.warn('Ошибка загрузки данных:', e.message);
-    render(); 
-  }
-  
-  try { adController = window.Adsgram?.init({ blockId: "49272" }); } catch(e) {}
-  await initTonConnect();
-}
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+                document.getElementById('tasks-list').innerHTML = '<p style="color: red;">Ошибка связи с сервером. Попробуйте позже.</p>';
+            }
+        }
 
-async function startTask(id){
-  try {
-    const j = await api('/api/tasks/start', { task_id: id });
-    if(j.url) {
-      try { tg?.openTelegramLink(j.url); } catch(e) { window.open(j.url, '_blank'); }
-    }
-    await new Promise(r => setTimeout(r, 2500));
-    if(confirm('Вы выполнили задание? Нажмите OK для проверки.')){
-      const c = await api('/api/tasks/complete', { task_id: id });
-      alert(c.message);
-      await load();
-    }
-  } catch(e){
-    alert(e.message);
-  }
-}
+        // Функция выполнения задания
+        async function completeTask(taskId) {
+            try {
+                const result = await apiRequest('/api/tasks/complete', 'POST', { task_id: taskId });
+                
+                if (result.error) {
+                    tg.showAlert(result.error); // Показываем ошибку в сплывающем окне ТГ
+                } else {
+                    tg.showAlert(result.message); // Показываем успех
+                    loadBootstrap(); // Перезагружаем интерфейс, чтобы обновить баланс
+                }
+            } catch (error) {
+                tg.showAlert('Произошла ошибка при выполнении.');
+            }
+        }
 
-async function createTask(){
-  try {
-    await api('/api/admin/tasks', {
-      title: document.getElementById('tTitle').value,
-      type: document.getElementById('tType').value,
-      chat_username: document.getElementById('tChat').value,
-      url: document.getElementById('tUrl').value,
-      reward: +document.getElementById('tReward').value
-    });
-    alert('Задание создано');
-    toggle('taskForm');
-    load();
-  } catch(e){
-    alert(e.message);
-  }
-}
-
-async function withdraw(){
-  try {
-    const j = await api('/api/withdrawals', {
-      amount: +document.getElementById('withdrawAmount').value,
-      address: document.getElementById('withdrawAddress'].value.trim()
-    });
-    alert(j.message);
-    load();
-  } catch(e){
-    alert(e.message);
-  }
-}
-
-async function approveDeposit(id){ try{ await api('/api/admin/deposits/'+id, {status:'approved'}); load(); }catch(e){alert(e.message)} }
-async function rejectDeposit(id){ try{ await api('/api/admin/deposits/'+id, {status:'rejected'}); load(); }catch(e){alert(e.message)} }
-async function approveWithdraw(id){ try{ await api('/api/admin/withdrawals/'+id, {status:'approved'}); load(); }catch(e){alert(e.message)} }
-async function rejectWithdraw(id){ try{ await api('/api/admin/withdrawals/'+id, {status:'rejected'}); load(); }catch(e){alert(e.message)} }
-
-async function showAd(){
-  if(!adController){
-    alert('Реклама пока недоступна.');
-    return;
-  }
-  try {
-    await adController.show();
-    const j = await api('/api/ads/reward', {});
-    alert(j.message);
-    load();
-  } catch(e) {
-    alert('Реклама не засчитана: ' + e.message);
-  }
-}
-
-load();
-</script>
+        // Запускаем загрузку при открытии приложения
+        window.addEventListener('DOMContentLoaded', () => {
+            loadBootstrap();
+        });
+    </script>
 </body>
 </html>
