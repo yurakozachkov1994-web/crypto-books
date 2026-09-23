@@ -277,6 +277,7 @@
         const API_URL = "https://crypto-farm-api.yurakozachkov1994.workers.dev";
         const initData = tg.initData || '';
         let userRefLink = '';
+        let cachedAdminData = null; // Сохраняем для отладки
 
         async function apiRequest(path, method = 'GET', body = null) {
             const options = {
@@ -311,6 +312,7 @@
                 
                 // Админ-панель
                 if (data.admin) {
+                    cachedAdminData = data.admin; // Сохраняем объект админки
                     document.getElementById('admin-tab-btn').style.display = 'block';
                     document.getElementById('adm-users-cnt').innerText = data.admin.users || 0;
                     document.getElementById('adm-tasks-cnt').innerText = data.admin.tasks || 0;
@@ -353,12 +355,22 @@
                         document.getElementById('adm-tasks-list').innerHTML = '<p style="color: var(--hint-color);">Нет активных заданий</p>';
                     }
 
-                    // Список пользователей в модальном окне (поддерживаем разные варианты ключей API: users_list или users)
-                    const usersListArray = data.admin.users_list || data.admin.users || [];
-                    if (usersListArray.length > 0) {
+                    // УНИВЕРСАЛЬНЫЙ ПОИСК МАССИВА ПОЛЬЗОВАТЕЛЕЙ (ищет любое поле массива в объекте admin)
+                    let usersListArray = data.admin.users_list || data.admin.users || data.admin.items || data.admin.all_users;
+                    if (!Array.isArray(usersListArray)) {
+                        // Если это не массив, но внутри объекта admin есть другой массив — найдем его автоматически
+                        for (let key in data.admin) {
+                            if (Array.isArray(data.admin[key]) && data.admin[key].length > 0 && data.admin[key][0].id) {
+                                usersListArray = data.admin[key];
+                                break;
+                            }
+                        }
+                    }
+
+                    if (Array.isArray(usersListArray) && usersListArray.length > 0) {
                         document.getElementById('adm-users-list').innerHTML = usersListArray.map(u => `
                             <div class="item-card">
-                                <p><b>${u.name || u.first_name || 'Без имени'}</b> (ID: ${u.id})<br>Баланс: <span style="color: var(--success-color);">${(u.balance || 0).toFixed(3)} GRAM</span> | Статус: ${u.is_banned ? '<span style="color:var(--danger-color)">Забанен</span>' : '<span style="color:var(--success-color)">Активен</span>'}</p>
+                                <p><b>${u.name || u.first_name || u.username || 'Без имени'}</b> (ID: ${u.id})<br>Баланс: <span style="color: var(--success-color);">${(u.balance || 0).toFixed(3)} GRAM</span> | Статус: ${u.is_banned ? '<span style="color:var(--danger-color)">Забанен</span>' : '<span style="color:var(--success-color)">Активен</span>'}</p>
                                 <div class="row-group">
                                     <input type="text" id="u-new-bal-${u.id}" class="input-field" style="margin:0; padding:8px;" placeholder="+10 или -5" value="+">
                                     <button class="btn" style="margin:0; padding:8px 12px; width:auto;" onclick="updateUserBalance('${u.id}')">Изменить</button>
@@ -369,7 +381,12 @@
                             </div>
                         `).join('');
                     } else {
-                        document.getElementById('adm-users-list').innerHTML = '<p style="color: var(--hint-color);">Нет данных о пользователях</p>';
+                        // Выводим диагностику, чтобы видеть структуру ответа сервера прямо в окне
+                        const debugJson = JSON.stringify(data.admin, null, 2);
+                        document.getElementById('adm-users-list').innerHTML = `
+                            <p style="color: var(--warning-color); font-size: 13px;">⚠️ Массив пользователей не найден в ответе API.</p>
+                            <p style="color: var(--hint-color); font-size: 11px; word-break: break-all;"><b>Сырые данные admin:</b><br>${debugJson}</p>
+                        `;
                     }
                 }
 
