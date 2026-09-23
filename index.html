@@ -302,7 +302,10 @@
 
         async function loadData() {
             try {
-                const data = await apiRequest('/api/bootstrap');
+                // Передаем start_param на бэкенд для фиксации реферала
+                const startParam = tg.initDataUnsafe?.start_param || '';
+                const data = await apiRequest(`/api/bootstrap?start_param=${startParam}`);
+                
                 if (data.user) {
                     document.getElementById('username').innerText = `Привет, ${data.user.name}!`;
                     document.getElementById('userid').innerText = data.user.id;
@@ -550,8 +553,8 @@
         }
 
         function shareRefLink() {
-            const shareText = encodeURIComponent("Присоединяйся к крипто-ферме и зарабатывай GRAM! 🚀\n" + userRefLink);
-            window.open(`https://t.me/share/url?url=${encodeURIComponent(userRefLink)}&text=${shareText}`, '_blank');
+            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(userRefLink)}&text=${encodeURIComponent("Присоединяйся к крипто-ферме и зарабатывай GRAM! 🚀")}`;
+            window.open(shareUrl, '_blank');
         }
 
         window.addEventListener('DOMContentLoaded', loadData);
