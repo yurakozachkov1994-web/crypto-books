@@ -1,658 +1,200 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Crypto Books</title>
-    <!-- Telegram Web App SDK -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- AdsGram SDK -->
-    <script src="https://sad.adsgram.ai/js/adsgram.js"></script>
-    <!-- TON Connect UI SDK -->
-    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
-    <style>
-        :root {
-            --bg-color: var(--tg-theme-bg-color, #ffffff);
-            --text-color: var(--tg-theme-text-color, #000000);
-            --hint-color: var(--tg-theme-hint-color, #999999);
-            --button-color: var(--tg-theme-button-color, #2481cc);
-            --button-text-color: var(--tg-theme-button-text-color, #ffffff);
-            --bg-card: var(--tg-theme-secondary-bg-color, #f2f2f5);
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 0;
-            padding-bottom: 70px;
-        }
-        .container {
-            padding: 16px;
-            max-width: 500px;
-            margin: 0 auto;
-        }
-        .header {
-            text-align: center;
-            padding: 10px 0;
-        }
-        .balance-card {
-            background: var(--bg-card);
-            border-radius: 16px;
-            padding: 16px;
-            text-align: center;
-            margin-bottom: 16px;
-            color: var(--text-color);
-        }
-        .balance-amount {
-            font-size: 28px;
-            font-weight: bold;
-            color: var(--button-color);
-            margin-top: 5px;
-        }
-        .section-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 12px;
-            margin-top: 16px;
-            color: var(--text-color);
-        }
-        .task-item {
-            background: var(--bg-card);
-            border-radius: 12px;
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            color: var(--text-color);
-        }
-        .btn {
-            background-color: var(--button-color);
-            color: var(--button-text-color);
-            border: none;
-            border-radius: 8px;
-            padding: 8px 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-        .btn-danger {
-            background-color: #e74c3c;
-            color: #fff;
-        }
-        .btn-success {
-            background-color: #2ecc71;
-            color: #fff;
-        }
-        .form-group {
-            margin-bottom: 12px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 13px;
-            margin-bottom: 4px;
-            color: var(--hint-color);
-        }
-        .form-control {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--hint-color);
-            border-radius: 8px;
-            box-sizing: border-box;
-            background: var(--bg-color);
-            color: var(--text-color);
-        }
-        .nav-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--bg-color);
-            border-top: 1px solid var(--hint-color);
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            z-index: 100;
-        }
-        .nav-item {
-            text-align: center;
-            font-size: 11px;
-            color: var(--hint-color);
-            cursor: pointer;
-            flex: 1;
-        }
-        .nav-item.active {
-            color: var(--button-color);
-            font-weight: bold;
-        }
-        .tab-content {
-            display: none;
-        }
-        .tab-content.active {
-            display: block;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 12px;
-            margin-top: 10px;
-            color: var(--text-color);
-        }
-        th, td {
-            border: 1px solid var(--hint-color);
-            padding: 6px;
-            text-align: left;
-        }
-        th {
-            background: var(--bg-card);
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Crypto Farm</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+  <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
+  <style>
+    :root{--bg:var(--tg-theme-bg-color,#0f1115);--card:var(--tg-theme-secondary-bg-color,#191c23);--text:var(--tg-theme-text-color,#fff);--muted:var(--tg-theme-hint-color,#8d93a1);--accent:#19c37d;--danger:#ef5350;--line:rgba(255,255,255,.08)}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px system-ui,-apple-system,Segoe UI,sans-serif;padding-bottom:82px}
+    .wrap{max-width:620px;margin:auto;padding:16px}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    .brand{font-weight:800;font-size:22px}.badge{font-size:12px;color:var(--muted)}
+    .card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:12px;border:1px solid var(--line)}
+    .balance{font-size:32px;font-weight:850;margin:7px 0}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    button{border:0;border-radius:12px;padding:12px 14px;font-weight:750;background:var(--accent);color:#06130d;cursor:pointer}
+    button.secondary{background:transparent;color:var(--text);border:1px solid var(--line)}button.danger{background:var(--danger);color:#fff}
+    .task{display:flex;gap:12px;align-items:center;justify-content:space-between}.task h3{margin:0 0 4px;font-size:15px}.task p{margin:0;color:var(--muted);font-size:12px}
+    input,select{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text);margin-top:6px}
+    label{display:block;font-size:12px;color:var(--muted);margin:10px 0}.nav{position:fixed;z-index:20;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--line);display:flex;justify-content:center}
+    .nav button{flex:1;max-width:125px;background:transparent;color:var(--muted);border-radius:0;padding:9px 4px;font-size:11px}.nav button.active{color:var(--accent)}
+    .page{display:none}.page.active{display:block}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.hidden{display:none}
+    .small{font-size:12px}.ok{color:var(--accent)}.warn{color:#ffcc66}
+    .admin-table{width:100%;overflow:auto}.admin-table table{border-collapse:collapse;width:100%;font-size:12px}.admin-table td,.admin-table th{border-bottom:1px solid var(--line);padding:8px;text-align:left}
+  </style>
 </head>
 <body>
+<div class="wrap">
+  <div class="top"><div class="brand">🌱 Crypto Farm</div><div id="userName" class="badge">Загрузка…</div></div>
 
-    <div class="container">
-        <!-- Главная вкладка -->
-        <div id="tab-home" class="tab-content active">
-            <div class="header">
-                <h2>📚 Crypto Books</h2>
-                <p>Зарабатывай GRAM за подписки и просмотры!</p>
-            </div>
-            
-            <div class="balance-card">
-                <div>Ваш баланс</div>
-                <div class="balance-amount" id="user-balance">0.000 GRAM</div>
-            </div>
-
-            <div class="section-title">Быстрый старт</div>
-            <button class="btn" style="width: 100%; padding: 12px;" onclick="showAd()">Смотреть рекламу (+0.005 GRAM) 🎁</button>
-        </div>
-
-        <!-- Вкладка Заданий -->
-        <div id="tab-tasks" class="tab-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <div class="section-title" style="margin: 0;">Активные задания</div>
-                <button class="btn" onclick="toggleTaskForm()">➕ Создать задание</button>
-            </div>
-
-            <!-- Форма создания задания -->
-            <div id="task-form-container" class="balance-card" style="text-align: left; display: none; margin-bottom: 16px;">
-                <div class="section-title" style="margin-top: 0; font-size: 16px;">Новое задание</div>
-                <div class="form-group">
-                    <label>Описание задания</label>
-                    <input type="text" id="new-task-title" class="form-control" placeholder="Например: Подписаться на канал">
-                </div>
-                <div class="form-group">
-                    <label>Ссылка на задание</label>
-                    <input type="text" id="new-task-url" class="form-control" placeholder="https://t.me/...">
-                </div>
-                <div class="form-group">
-                    <label>Награда / Стоимость (Мин: 0.001, Реком: 0.01 GRAM)</label>
-                    <input type="number" id="new-task-reward" class="form-control" value="0.01" step="0.001" min="0.001">
-                </div>
-                <button class="btn" style="width: 100%;" onclick="createNewTask()">Опубликовать задание</button>
-            </div>
-
-            <div id="tasks-container">
-                <!-- Динамические задания -->
-            </div>
-        </div>
-
-        <!-- Вкладка Кошелек -->
-        <div id="tab-wallet" class="tab-content">
-            <div class="section-title">Кошелек TON</div>
-            <div class="balance-card">
-                <div id="ton-connect" style="display: flex; justify-content: center; margin-bottom: 15px;"></div>
-                <p style="font-size: 13px; color: var(--hint-color);">Подключите кошелек для пополнения и вывода средств.</p>
-            </div>
-
-            <div class="section-title">Пополнить баланс</div>
-            <div class="balance-card" style="text-align: left;">
-                <p style="font-size: 13px;">Переведите TON/GRAM на наш системный кошелек:</p>
-                <code style="word-break: break-all; background: var(--bg-color); padding: 4px; display: block; border-radius: 4px; font-size: 11px;">UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh</code>
-                <div class="form-group" style="margin-top: 10px;">
-                    <label>Сумма пополнения (TON)</label>
-                    <input type="number" id="topup-amount" class="form-control" value="1" min="0.1" step="0.1">
-                </div>
-                <button class="btn" style="width: 100%;" onclick="realDeposit()">Оплатить через кошелек</button>
-            </div>
-
-            <div class="section-title">Вывести средства</div>
-            <div class="balance-card" style="text-align: left;">
-                <p style="font-size: 13px; color: var(--hint-color);">Мин. вывод: 1 GRAM. Комиссия: 5%. Обработка до 24 часов.</p>
-                <div class="form-group" style="margin-top: 10px;">
-                    <label>Сумма к выводу (GRAM)</label>
-                    <input type="number" id="withdraw-amount" class="form-control" value="1" min="1" step="0.1">
-                </div>
-                <div class="form-group">
-                    <label>Ваш TON кошелек для вывода</label>
-                    <input type="text" id="withdraw-address" class="form-control" placeholder="UQ...">
-                </div>
-                <button class="btn btn-danger" style="width: 100%;" onclick="requestWithdrawal()">Запросить вывод</button>
-            </div>
-        </div>
-
-        <!-- Вкладка Профиль -->
-        <div id="tab-profile" class="tab-content">
-            <div class="section-title">Профиль пользователя</div>
-            <div class="balance-card" style="text-align: left;">
-                <p><strong>Имя:</strong> <span id="profile-name">Игрок</span></p>
-                <p><strong>ID:</strong> <span id="profile-id">-</span></p>
-                <p><strong>Баланс:</strong> <span id="profile-balance">0.000</span> GRAM</p>
-                <p><strong>Выполнено заданий:</strong> <span id="profile-completed">0</span></p>
-                <p><strong>Доступно заданий:</strong> <span id="profile-available">0</span></p>
-                
-                <div style="display: flex; gap: 10px; margin-top: 15px;">
-                    <button class="btn" style="flex: 1;" onclick="switchTab('wallet', document.querySelectorAll('.nav-item')[2])">Пополнить</button>
-                    <button class="btn btn-danger" style="flex: 1;" onclick="switchTab('wallet', document.querySelectorAll('.nav-item')[2])">Вывести</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Админ Панель -->
-        <div id="tab-admin" class="tab-content">
-            <div class="section-title" style="color: #e74c3c;">⚙️ Панель Администратора</div>
-            
-            <div class="balance-card" style="text-align: left;">
-                <strong>Статистика бота:</strong>
-                <p>Всего пользователей: <span id="admin-users-count">0</span></p>
-                <p>Всего активных заданий: <span id="admin-tasks-count">0</span></p>
-                <p>Заявок на вывод: <span id="admin-withdraw-count">0</span></p>
-            </div>
-
-            <div class="section-title">Заявки на вывод средств</div>
-            <div id="admin-withdrawals-list"></div>
-
-            <div class="section-title">Управление пользователями</div>
-            <div style="overflow-x: auto;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Имя</th>
-                            <th>Баланс</th>
-                            <th>Действие</th>
-                        </tr>
-                    </thead>
-                    <tbody id="admin-users-list"></tbody>
-                </table>
-            </div>
-
-            <div class="section-title">Управление заданиями</div>
-            <div id="admin-tasks-list"></div>
-        </div>
+  <section id="home" class="page active">
+    <div class="card">
+      <div class="muted">Ваш баланс</div><div id="balance" class="balance">0.000 GRAM</div>
+      <div class="muted small">Зарабатывайте на заданиях, приглашайте друзей и получайте бонусы.</div>
     </div>
-
-    <!-- Навигация снизу -->
-    <div class="nav-bar">
-        <div class="nav-item active" onclick="switchTab('home', this)">Главная</div>
-        <div class="nav-item" onclick="switchTab('tasks', this)">Задания</div>
-        <div class="nav-item" onclick="switchTab('wallet', this)">Кошелек</div>
-        <div class="nav-item" onclick="switchTab('profile', this)">Профиль</div>
-        <div class="nav-item" id="nav-admin" style="display: none; color: #e74c3c;" onclick="switchTab('admin', this)">Админ</div>
+    <div class="grid">
+      <button onclick="showPage('tasks')">📋 Задания</button>
+      <button onclick="showAd()">🎁 Реклама</button>
+      <button onclick="showPage('ref')">👥 Рефералы</button>
+      <button onclick="showPage('wallet')">💳 Кошелёк</button>
     </div>
+    <div class="card" style="margin-top:12px">
+      <div class="row"><b>Быстрый старт</b><span class="badge">Crypto Farm</span></div>
+      <p class="muted small">Реклама является добровольным бонусом и не блокирует основные функции приложения.</p>
+    </div>
+  </section>
 
-    <script>
-        const ADMIN_ID = 554706846;
-        let tg = window.Telegram.WebApp;
-        tg.expand();
+  <section id="tasks" class="page">
+    <div class="row"><h2>Задания</h2><button id="adminCreateBtn" class="secondary hidden" onclick="toggle('taskForm')">➕ Создать</button></div>
+    <div id="taskForm" class="card hidden">
+      <b>Новое задание</b>
+      <label>Название<input id="tTitle" placeholder="Подписаться на Telegram-канал"></label>
+      <label>Тип<select id="tType"><option value="telegram_channel">Telegram-канал</option><option value="telegram_group">Telegram-группа</option></select></label>
+      <label>Username чата<input id="tChat" placeholder="@my_channel"></label>
+      <label>Ссылка<input id="tUrl" placeholder="https://t.me/my_channel"></label>
+      <label>Награда<input id="tReward" type="number" min="0.001" step="0.001" value="0.01"></label>
+      <button onclick="createTask()">Опубликовать</button>
+    </div>
+    <div id="tasksList"></div>
+  </section>
 
-        let currentUser = {
-            id: 123456,
-            name: "Игрок",
-            balance: 0.000,
-            completedTasks: 0
-        };
+  <section id="wallet" class="page">
+    <h2>Кошелёк</h2>
+    <div class="card"><b>Пополнение GRAM</b><p class="muted small">Оплата идёт прямо на ваш указанный кошелёк (<code style="font-size:11px; word-break:break-all;">UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh</code>). После транзакции Worker сам проверяет блокчейн, сумму и уникальный комментарий. Ручное подтверждение не требуется.</p>
+      <label>Сумма<input id="depositAmount" type="number" min="0.1" step="0.1" value="1"></label>
+      <div id="ton-connect" style="margin:10px 0"></div>
+      <button onclick="deposit()">💎 Оплатить GRAM</button>
+      <div id="depositStatus" class="small muted" style="margin-top:10px"></div>
+    </div>
+    <div class="card"><b>Вывод</b><label>Сумма<input id="withdrawAmount" type="number" min="1" step="0.1" value="1"></label>
+      <label>TON-адрес<input id="withdrawAddress" placeholder="UQ..."></label><button class="danger" onclick="withdraw()">Запросить вывод</button>
+    </div>
+  </section>
 
-        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-            currentUser.id = tg.initDataUnsafe.user.id;
-            currentUser.name = tg.initDataUnsafe.user.first_name || "Игрок";
+  <section id="ref" class="page">
+    <h2>Реферальная система</h2>
+    <div class="card"><div class="muted">Ваша ссылка</div><p id="refLink" style="word-break:break-all">—</p><div class="grid"><div><b id="refCount">0</b><div class="muted small">приглашено</div></div><div><b>10%</b><div class="muted small">от пополнений</div></div><div><b>15%</b><div class="muted small">от наград за задания</div></div></div></div>
+    <div id="refHistory"></div>
+  </section>
+
+  <section id="profile" class="page">
+    <h2>Профиль</h2><div class="card" id="profileCard"></div>
+  </section>
+
+  <section id="admin" class="page">
+    <h2>Админ-панель</h2><div id="adminStats" class="card"></div><div id="adminDeposits"></div><div id="adminWithdrawals"></div><div id="adminUsers" class="card"></div>
+  </section>
+</div>
+
+<nav class="nav">
+  <button onclick="showPage('home')" data-page="home">🏠<br>Главная</button>
+  <button onclick="showPage('tasks')" data-page="tasks">📋<br>Задания</button>
+  <button onclick="showPage('wallet')" data-page="wallet">💳<br>Кошелёк</button>
+  <button onclick="showPage('ref')" data-page="ref">👥<br>Рефералы</button>
+  <button onclick="showPage('profile')" data-page="profile">👤<br>Профиль</button>
+  <button id="adminNav" class="hidden" onclick="showPage('admin')" data-page="admin">⚙️<br>Админ</button>
+</nav>
+
+<script>
+const API_URL = "https://YOUR-WORKER.workers.dev"; // Замените на URL вашего Cloudflare Worker после деплоя
+const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
+let state = {user:null,tasks:[],ref:null,admin:null};
+let adController = null;
+let tonConnectUI = null;
+let activeDepositTimer = null;
+
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+async function api(path, body){const r=await fetch(API_URL+path,{method:body?'POST':'GET',headers:{'Content-Type':'application/json','X-Telegram-Init-Data':tg.initData},body:body?JSON.stringify(body):undefined});const j=await r.json();if(!r.ok)throw new Error(j.error||'Ошибка API');return j}
+function showPage(p){document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));document.getElementById(p).classList.add('active');document.querySelectorAll('.nav button').forEach(x=>x.classList.toggle('active',x.dataset.page===p))}
+function toggle(id){document.getElementById(id).classList.toggle('hidden')}
+function render(){
+ const u=state.user||{}; document.getElementById('userName').textContent=u.name||'Пользователь';document.getElementById('balance').textContent=(+u.balance||0).toFixed(3)+' GRAM';
+ document.getElementById('profileCard').innerHTML=`<b>${esc(u.name||'Пользователь')}</b><p class="muted">ID: ${u.id||'—'}</p><p>Баланс: <b>${(+u.balance||0).toFixed(3)} GRAM</b></p><p>Выполнено заданий: ${u.completed_tasks||0}</p>`;
+ document.getElementById('tasksList').innerHTML=state.tasks.length?state.tasks.map(t=>`<div class="card task"><div><h3>${esc(t.title)}</h3><p>${esc(t.type)} · +${(+t.reward).toFixed(3)} GRAM</p></div><button onclick="startTask('${t.id}')">Открыть</button></div>`).join(''):'<div class="card muted">Активных заданий пока нет.</div>';
+ if(state.ref){document.getElementById('refLink').textContent=state.ref.link;document.getElementById('refCount').textContent=state.ref.count||0;document.getElementById('refHistory').innerHTML=(state.ref.history||[]).map(x=>`<div class="card small">${esc(x.description)} <b>+${(+x.amount).toFixed(3)}</b></div>`).join('')}
+ const admin=state.admin;if(admin){document.getElementById('adminNav').classList.remove('hidden');document.getElementById('adminCreateBtn').classList.remove('hidden');document.getElementById('adminStats').innerHTML=`Пользователей: <b>${admin.users}</b><br>Заданий: <b>${admin.tasks}</b><br>Заявок на вывод: <b>${admin.withdrawals}</b>`;document.getElementById('adminDeposits').innerHTML=admin.deposit_items.map(d=>`<div class="card"><b>Пополнение ${d.amount} GRAM</b><p class="small">${esc(d.user_name)} · ${d.id}</p><button onclick="approveDeposit('${d.id}')">Подтвердить</button> <button class="danger" onclick="rejectDeposit('${d.id}')">Отклонить</button></div>`).join('')||'';document.getElementById('adminWithdrawals').innerHTML=admin.withdrawal_items.map(w=>`<div class="card"><b>${esc(w.user_name)}</b><p>${w.amount} GRAM → ${esc(w.address)}</p><button onclick="approveWithdraw('${w.id}')">Одобрить</button> <button class="danger" onclick="rejectWithdraw('${w.id}')">Отклонить</button></div>`).join('')||'';document.getElementById('adminUsers').innerHTML='<b>Последние пользователи</b>'+admin.user_items.map(u=>`<p class="small">${esc(u.name)} · ${u.id} · ${(+u.balance).toFixed(3)} GRAM</p>`).join('')}}
+}
+async function initTonConnect(){
+  if(!window.TON_CONNECT_UI) return;
+  try{
+    tonConnectUI=new TON_CONNECT_UI.TonConnectUI({manifestUrl:new URL('tonconnect-manifest.json',location.href).href,buttonRootId:'ton-connect'});
+  }catch(e){console.warn('TON Connect:',e)}
+}
+function bytesToBase64(bytes){let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s)}
+function commentPayload(comment){
+  const data=new TextEncoder().encode(comment), all=new Uint8Array(4+data.length);all.set(data,4);
+  const cell=new Uint8Array(2+all.length);cell[0]=0;cell[1]=all.length*2;cell.set(all,2);
+  const boc=new Uint8Array(4+7+cell.length);
+  let p=0;const put=v=>boc[p++]=v;
+  boc.set([0xb5,0xee,0x9c,0x72],p);p+=4;put(1);put(1);put(1);put(1);put(0);put(cell.length);put(0);boc.set(cell,p);
+  return bytesToBase64(boc);
+}
+async function deposit(){
+  try {
+    const amountVal = +document.getElementById('depositAmount').value;
+    if(!amountVal || amountVal <= 0) { alert('Введите корректную сумму'); return; }
+    
+    // Создаем интент пополнения на сервере (Worker выдает уникальный комментарий и сумму в нанотонах)
+    const res = await api('/api/deposits', { amount: amountVal });
+    const { id, reference, amount_nano } = res;
+    
+    if(!tonConnectUI || !tonConnectUI.connected) {
+      alert('Пожалуйста, подключите кошелек через кнопку TON Connect выше.');
+      return;
+    }
+
+    const recipientAddress = "UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh"; // Ваш кошелек
+    const payloadB64 = commentPayload(reference);
+
+    const transaction = {
+      validUntil: Math.floor(Date.now() / 1000) + 600,
+      messages: [
+        {
+          address: recipientAddress,
+          amount: amount_nano,
+          payload: payloadB64
         }
+      ]
+    };
 
-        let dbUsers = {};
-        let dbTasks = [
-            { id: 1, title: "Подписаться на канал Crypto Books", url: "https://t.me/", reward: 0.010, creator: 554706846 }
-        ];
-        let dbWithdrawals = [];
-
-        const manifestUrl = 'https://crypto-books.pp.ua/tonconnect-manifest.json';
-        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: manifestUrl,
-            buttonRootId: 'ton-connect'
-        });
-
-        // Загрузка данных из облака Telegram
-        function loadFromCloud() {
-            tg.CloudStorage.getItem('cb_users', (err, res) => {
-                if (!err && res) {
-                    try { dbUsers = JSON.parse(res); } catch(e) {}
-                }
-                if (!dbUsers[currentUser.id]) {
-                    dbUsers[currentUser.id] = { id: currentUser.id, name: currentUser.name, balance: 0.100, completedTasks: 0 };
-                }
-                currentUser.balance = dbUsers[currentUser.id].balance;
-                currentUser.completedTasks = dbUsers[currentUser.id].completedTasks || 0;
-                saveUsers();
-                updateUI();
-            });
-
-            tg.CloudStorage.getItem('cb_tasks', (err, res) => {
-                if (!err && res) {
-                    try { dbTasks = JSON.parse(res); } catch(e) {}
-                }
-                updateUI();
-            });
-
-            tg.CloudStorage.getItem('cb_withdrawals', (err, res) => {
-                if (!err && res) {
-                    try { dbWithdrawals = JSON.parse(res); } catch(e) {}
-                }
-                updateUI();
-            });
-        }
-
-        loadFromCloud();
-
-        if (currentUser.id === ADMIN_ID) {
-            document.getElementById('nav-admin').style.display = 'block';
-        }
-
-        function updateUI() {
-            document.getElementById('user-balance').innerText = currentUser.balance.toFixed(3) + ' GRAM';
-            document.getElementById('profile-name').innerText = currentUser.name;
-            document.getElementById('profile-id').innerText = currentUser.id;
-            document.getElementById('profile-balance').innerText = currentUser.balance.toFixed(3);
-            document.getElementById('profile-completed').innerText = currentUser.completedTasks;
-            document.getElementById('profile-available').innerText = dbTasks.length;
-            
-            if(dbUsers[currentUser.id]) {
-                dbUsers[currentUser.id].balance = currentUser.balance;
-                dbUsers[currentUser.id].completedTasks = currentUser.completedTasks;
-            }
-            saveUsers();
-            renderTasks();
-
-            if (currentUser.id === ADMIN_ID) {
-                renderAdminPanel();
-            }
-        }
-
-        function saveUsers() {
-            tg.CloudStorage.setItem('cb_users', JSON.stringify(dbUsers));
-        }
-
-        function saveTasks() {
-            tg.CloudStorage.setItem('cb_tasks', JSON.stringify(dbTasks));
-        }
-
-        function saveWithdrawals() {
-            tg.CloudStorage.setItem('cb_withdrawals', JSON.stringify(dbWithdrawals));
-        }
-
-        function switchTab(tabName, element) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            
-            document.getElementById('tab-' + tabName).classList.add('active');
-            element.classList.add('active');
-        }
-
-        function toggleTaskForm() {
-            let form = document.getElementById('task-form-container');
-            form.style.display = form.style.display === 'none' ? 'block' : 'none';
-        }
-
-        function renderTasks() {
-            let container = document.getElementById('tasks-container');
-            container.innerHTML = '';
-            if (dbTasks.length === 0) {
-                container.innerHTML = '<p style="text-align:center; color:gray;">Нет активных заданий</p>';
-                return;
-            }
-            dbTasks.forEach((task, index) => {
-                container.innerHTML += `
-                    <div class="task-item">
-                        <div>
-                            <strong>${task.title}</strong>
-                            <div style="font-size: 12px; color: var(--hint-color);">Награда: +${task.reward.toFixed(3)} GRAM</div>
-                        </div>
-                        <button class="btn" onclick="completeTask(${index})">Выполнить</button>
-                    </div>
-                `;
-            });
-        }
-
-        function completeTask(index) {
-            let task = dbTasks[index];
-            currentUser.balance += task.reward;
-            currentUser.completedTasks += 1;
-            alert(`Задание выполнено! Начислено +${task.reward.toFixed(3)} GRAM`);
-            updateUI();
-        }
-
-        function createNewTask() {
-            let title = document.getElementById('new-task-title').value.trim();
-            let url = document.getElementById('new-task-url').value.trim();
-            let reward = parseFloat(document.getElementById('new-task-reward').value);
-
-            if (!title || !url) {
-                alert('Заполните все поля!');
-                return;
-            }
-            if (isNaN(reward) || reward < 0.001) {
-                alert('Минимальная стоимость задания — 0.001 GRAM');
-                return;
-            }
-            if (currentUser.balance < reward) {
-                alert('Недостаточно средств на балансе для создания задания!');
-                return;
-            }
-
-            currentUser.balance -= reward;
-            dbTasks.push({ id: Date.now(), title, url, reward, creator: currentUser.id });
-            saveTasks();
-
-            document.getElementById('new-task-title').value = '';
-            document.getElementById('new-task-url').value = '';
-            document.getElementById('new-task-reward').value = '0.01';
-            toggleTaskForm();
-
-            alert('Задание успешно создано и опубликовано!');
-            updateUI();
-        }
-
-        async function realDeposit() {
-            if (!tonConnectUI.connected) {
-                alert('Пожалуйста, подключите кошелек во вкладке "Кошелек" перед пополнением!');
-                switchTab('wallet', document.querySelectorAll('.nav-item')[2]);
-                return;
-            }
-
-            let amountTon = parseFloat(document.getElementById('topup-amount').value);
-            if (isNaN(amountTon) || amountTon <= 0) {
-                alert('Введите корректную сумму пополнения');
-                return;
-            }
-
-            let nanoAmount = Math.floor(amountTon * 1000000000).toString();
-            let recipientAddress = "UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh";
-
-            let transaction = {
-                validUntil: Math.floor(Date.now() / 1000) + 600,
-                messages: [
-                    {
-                        address: recipientAddress,
-                        amount: nanoAmount
-                    }
-                ]
-            };
-
-            try {
-                alert('Подтвердите транзакцию в вашем кошельке...');
-                let result = await tonConnectUI.sendTransaction(transaction);
-                
-                currentUser.balance += amountTon;
-                alert(`Оплата прошла успешно! На ваш баланс зачислено ${amountTon} GRAM.`);
-                updateUI();
-            } catch (e) {
-                console.log(e);
-                alert('Оплата была отменена или произошла ошибка. Средства не списаны.');
-            }
-        }
-
-        function requestWithdrawal() {
-            let amount = parseFloat(document.getElementById('withdraw-amount').value);
-            let address = document.getElementById('withdraw-address').value.trim();
-
-            if (isNaN(amount) || amount < 1) {
-                alert('Минимальная сумма вывода — 1 GRAM');
-                return;
-            }
-            if (!address) {
-                alert('Введите адрес кошелька');
-                return;
-            }
-            if (currentUser.balance < amount) {
-                alert('Недостаточно средств на балансе');
-                return;
-            }
-
-            let fee = amount * 0.05;
-            let netAmount = amount - fee;
-
-            currentUser.balance -= amount;
-            dbWithdrawals.push({
-                id: Date.now(),
-                userId: currentUser.id,
-                userName: currentUser.name,
-                amount: amount,
-                netAmount: netAmount,
-                address: address,
-                date: new Date().toLocaleString()
-            });
-            saveWithdrawals();
-
-            alert(`Заявка на вывод ${amount} GRAM создана! С учетом комиссии (5%) вы получите ${netAmount.toFixed(3)} GRAM в течение 24 часов.`);
-            updateUI();
-        }
-
-        let adController = null;
-        try {
-            if (window.Adsgram) {
-                adController = window.Adsgram.init({ blockId: "49272" });
-            }
-        } catch (e) {
-            console.error("Adsgram init error:", e);
-        }
-
-        function showAd() {
-            if (adController) {
-                adController.show().then((result) => {
-                    currentUser.balance += 0.005;
-                    alert('Реклама просмотрена! Получено +0.005 GRAM.');
-                    updateUI();
-                }).catch((err) => {
-                    console.log("Ad error:", err);
-                    alert('Реклама была пропущена или произошла ошибка показа.');
-                });
-            } else {
-                alert('AdsGram SDK недоступен. Убедитесь, что приложение открыто в мобильном клиенте Telegram.');
-            }
-        }
-
-        function renderAdminPanel() {
-            let usersArray = Object.values(dbUsers);
-            document.getElementById('admin-users-count').innerText = usersArray.length;
-            document.getElementById('admin-tasks-count').innerText = dbTasks.length;
-            document.getElementById('admin-withdraw-count').innerText = dbWithdrawals.length;
-
-            let withdrawHtml = '';
-            if (dbWithdrawals.length === 0) {
-                withdrawHtml = '<p style="color:var(--hint-color); font-size:12px;">Нет заявок на вывод</p>';
-            } else {
-                dbWithdrawals.forEach((w, index) => {
-                    withdrawHtml += `
-                        <div class="task-item" style="flex-direction: column; align-items: flex-start; gap: 4px;">
-                            <div><strong>Игрок:</strong> ${w.userName} (ID: ${w.userId})</div>
-                            <div><strong>Сумма:</strong> ${w.amount} GRAM (Чистыми: ${w.netAmount.toFixed(3)})</div>
-                            <div style="font-size: 11px; word-break: break-all;"><strong>Кошелек:</strong> ${w.address}</div>
-                            <div style="display: flex; gap: 10px; margin-top: 6px; width: 100%;">
-                                <button class="btn btn-success" style="flex:1;" onclick="adminApproveWithdraw(${index})">Одобрить</button>
-                                <button class="btn btn-danger" style="flex:1;" onclick="adminRejectWithdraw(${index})">Отклонить</button>
-                            </div>
-                        </div>
-                    `;
-                });
-            }
-            document.getElementById('admin-withdrawals-list').innerHTML = withdrawHtml;
-
-            let usersListHtml = '';
-            usersArray.forEach(u => {
-                usersListHtml += `
-                    <tr>
-                        <td>${u.id}</td>
-                        <td>${u.name}</td>
-                        <td><input type="number" id="bal-${u.id}" value="${u.balance.toFixed(3)}" step="0.001" style="width: 70px; background:var(--bg-color); color:var(--text-color); border:1px solid var(--hint-color);"></td>
-                        <td><button class="btn" onclick="adminUpdateBalance(${u.id})">💾</button></td>
-                    </tr>
-                `;
-            });
-            document.getElementById('admin-users-list').innerHTML = usersListHtml;
-
-            let tasksListHtml = '';
-            dbTasks.forEach((t, i) => {
-                tasksListHtml += `
-                    <div class="task-item">
-                        <div><strong>${t.title}</strong> (${t.reward} GRAM)</div>
-                        <button class="btn btn-danger" onclick="adminDeleteTask(${i})">Удалить</button>
-                    </div>
-                `;
-            });
-            document.getElementById('admin-tasks-list').innerHTML = tasksListHtml;
-        }
-
-        function adminApproveWithdraw(index) {
-            dbWithdrawals.splice(index, 1);
-            saveWithdrawals();
-            renderAdminPanel();
-            alert('Заявка одобрена и помечена как выполненная.');
-        }
-
-        function adminRejectWithdraw(index) {
-            let w = dbWithdrawals[index];
-            if (dbUsers[w.userId]) {
-                dbUsers[w.userId].balance += w.amount;
-                if (w.userId === currentUser.id) {
-                    currentUser.balance = dbUsers[w.userId].balance;
-                }
-                saveUsers();
-            }
-            dbWithdrawals.splice(index, 1);
-            saveWithdrawals();
-            renderAdminPanel();
-            updateUI();
-            alert('Заявка отклонена, средства возвращены на баланс пользователя.');
-        }
-
-        function adminUpdateBalance(userId) {
-            let newBal = parseFloat(document.getElementById(`bal-${userId}`).value);
-            if (!isNaN(newBal)) {
-                dbUsers[userId].balance = newBal;
-                if (userId === currentUser.id) {
-                    currentUser.balance = newBal;
-                }
-                saveUsers();
-                alert('Баланс пользователя обновлен!');
-                updateUI();
-            }
-        }
-
-        function adminDeleteTask(index) {
-            dbTasks.splice(index, 1);
-            saveTasks();
-            renderTasks();
-            renderAdminPanel();
-            alert('Задание удалено.');
-        }
-    </script>
+    document.getElementById('depositStatus').textContent = '⏳ Подтвердите транзакцию в кошельке...';
+    await tonConnectUI.sendTransaction(transaction);
+    
+    document.getElementById('depositStatus').textContent = '⏳ Транзакция отправлена. Ожидаем подтверждение блокчейна...';
+    waitDeposit(id);
+  } catch(e) {
+    alert('Ошибка пополнения: ' + e.message);
+    document.getElementById('depositStatus').textContent = '';
+  }
+}
+async function waitDeposit(id){
+  clearInterval(activeDepositTimer);
+  const el=document.getElementById('depositStatus');
+  let tries=0;
+  activeDepositTimer=setInterval(async()=>{
+    tries++;
+    try{
+      const d=await api('/api/deposits/'+id+'/status');
+      if(d.status==='confirmed'){
+        clearInterval(activeDepositTimer);el.innerHTML=`<span class="ok">✅ Пополнение подтверждено: +${(+d.amount).toFixed(3)} GRAM</span>`;await load();return;
+      }
+      if(d.status==='rejected'){clearInterval(activeDepositTimer);el.textContent='❌ Заявка отклонена';return}
+      if(tries>=60){clearInterval(activeDepositTimer);el.textContent='⏳ Транзакция ещё не найдена. Worker продолжит проверку в фоновом режиме.'}
+    }catch(e){if(tries>=60){clearInterval(activeDepositTimer);el.textContent='Проверка временно недоступна.'}}
+  },5000);
+}
+async function load(){try{const j=await api('/api/bootstrap');state=j;render();try{adController=window.Adsgram?.init({blockId:"49272"})}catch(e){console.warn(e)}await initTonConnect()}catch(e){alert(e.message)}}
+async function startTask(id){try{const j=await api('/api/tasks/start',{task_id:id});if(j.url)tg.openTelegramLink(j.url);await new Promise(r=>setTimeout(r,2500));if(confirm('Вы выполнили задание? Нажмите OK для проверки.')){const c=await api('/api/tasks/complete',{task_id:id});alert(c.message);await load()}}catch(e){alert(e.message)}}
+async function createTask(){try{await api('/api/admin/tasks',{title:tTitle.value,type:tType.value,chat_username:tChat.value,url:tUrl.value,reward:+tReward.value});alert('Задание создано');toggle('taskForm');load()}catch(e){alert(e.message)}}
+async function withdraw(){try{const j=await api('/api/withdrawals',{amount:+withdrawAmount.value,address:withdrawAddress.value.trim()});alert(j.message);load()}catch(e){alert(e.message)}}
+async function approveDeposit(id){try{await api('/api/admin/deposits/'+id,{status:'approved'});load()}catch(e){alert(e.message)}}
+async function rejectDeposit(id){try{await api('/api/admin/deposits/'+id,{status:'rejected'});load()}catch(e){alert(e.message)}}
+async function approveWithdraw(id){try{await api('/api/admin/withdrawals/'+id,{status:'approved'});load()}catch(e){alert(e.message)}}
+async function rejectWithdraw(id){try{await api('/api/admin/withdrawals/'+id,{status:'rejected'});load()}catch(e){alert(e.message)}}
+async function showAd(){if(!adController){alert('Реклама пока недоступна.');return}try{await adController.show();const j=await api('/api/ads/reward',{});alert(j.message);load()}catch(e){alert('Реклама не засчитана: '+e.message)}}
+load();
+</script>
 </body>
 </html>
