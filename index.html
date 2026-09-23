@@ -382,7 +382,7 @@
                                     <span style="color: var(--success-color); font-size: 14px;">+${t.reward} GRAM</span>
                                 </div>
                                 <div style="display: flex; gap: 8px;">
-                                    <button class="btn" style="margin: 0; padding: 8px; font-size: 13px; flex: 1; background-color: #334155;" onclick="openTaskUrl('${t.url}')">🔗 Ссылка</button>
+                                    <button class="btn" style="margin: 0; padding: 8px; font-size: 13px; flex: 1; background-color: #334155;" onclick="openTaskUrl('${t.url || ''}', '${t.title}')">🔗 Ссылка</button>
                                     <button class="btn btn-success" style="margin: 0; padding: 8px; font-size: 13px; flex: 1;" onclick="completeTask('${t.id}')">✅ Проверить</button>
                                 </div>
                             </div>
@@ -407,16 +407,17 @@
             }
         }
 
-        // Безопасное открытие ссылки в новом окне
-        function openTaskUrl(url) {
+        // Безопасное открытие ссылки задания (если URL пустой, открывает поиск по названию)
+        function openTaskUrl(url, title) {
             if (url && url !== 'undefined' && url.trim() !== '') {
-                window.open(url, '_blank');
+                window.open(url.startsWith('http') ? url : `https://${url}`, '_blank');
             } else {
-                tg.showAlert('Ссылка для этого задания не была указана при создании.');
+                const cleanTitle = title.replace(/[^a-zA-Z0-9а-яА-Я]/g, '');
+                window.open(`https://t.me/s/${cleanTitle}`, '_blank');
             }
         }
 
-        // Начисление награды только при нажатии на «Проверить»
+        // Проверка и начисление награды
         async function completeTask(taskId) {
             const res = await apiRequest('/api/tasks/complete', 'POST', { task_id: taskId });
             if (res.error) {
