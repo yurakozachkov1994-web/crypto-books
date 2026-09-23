@@ -232,7 +232,7 @@
         <h4>📋 Управление заданиями</h4>
         <div id="adm-tasks-list"><p style="color: var(--hint-color);">Загрузка заданий...</p></div>
 
-        <h4>👥 Управление пользователями и бан-лист</h4>
+        <h4>👥 Управление пользователями и балансом</h4>
         <div id="adm-users-list"><p style="color: var(--hint-color);">Загрузка пользователей...</p></div>
     </div>
 
@@ -341,7 +341,7 @@
                         document.getElementById('adm-tasks-list').innerHTML = '<p style="color: var(--hint-color);">Нет активных заданий</p>';
                     }
 
-                    // Управление пользователями и бан-лист
+                    // Управление пользователями, балансом и бан-лист
                     if (data.admin.users_list && data.admin.users_list.length > 0) {
                         document.getElementById('adm-users-list').innerHTML = data.admin.users_list.map(u => `
                             <div class="item-card">
