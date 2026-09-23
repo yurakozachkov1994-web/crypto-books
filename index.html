@@ -145,7 +145,7 @@
         <button id="admin-tab-btn" class="btn btn-warning" style="width: auto; padding: 6px 12px; margin: 0; display: none;" onclick="switchTab('admin', this)">⚙️ Админка</button>
     </div>
 
-    <!-- Вкладка: Главная / Фарминг -->
+    <!-- Вкладка: Главная -->
     <div id="tab-home" class="tab-content active">
         <div class="card">
             <p style="margin: 0; color: var(--hint-color);">Ваш баланс</p>
@@ -238,12 +238,11 @@
     <div id="task-modal" class="modal">
         <div class="modal-content">
             <h3>Создать задание</h3>
-            <p style="font-size: 12px; color: var(--hint-color);">При создании задания бот автоматически отправит уведомление всем пользователям!</p>
             <input type="text" id="new-task-title" class="input-field" placeholder="Название / описание задания">
             <input type="text" id="new-task-url" class="input-field" placeholder="Ссылка (например, на канал или сайт)">
             <input type="number" id="new-task-reward" class="input-field" placeholder="Награда за выполнение (мин. 0.001)" step="0.001" min="0.001">
             <input type="number" id="new-task-budget" class="input-field" placeholder="Общий бюджет (сумма для выплат)" step="0.01" min="0.01">
-            <button class="btn" onclick="submitNewTask()">Создать и уведомить</button>
+            <button class="btn" onclick="submitNewTask()">Создать</button>
             <button class="btn btn-danger" style="margin-top: 6px;" onclick="closeTaskModal()">Отмена</button>
         </div>
     </div>
@@ -277,7 +276,6 @@
         const API_URL = "https://crypto-farm-api.yurakozachkov1994.workers.dev";
         const initData = tg.initData || '';
         let userRefLink = '';
-        let cachedAdminData = null; // Сохраняем для отладки
 
         async function apiRequest(path, method = 'GET', body = null) {
             const options = {
@@ -312,7 +310,6 @@
                 
                 // Админ-панель
                 if (data.admin) {
-                    cachedAdminData = data.admin; // Сохраняем объект админки
                     document.getElementById('admin-tab-btn').style.display = 'block';
                     document.getElementById('adm-users-cnt').innerText = data.admin.users || 0;
                     document.getElementById('adm-tasks-cnt').innerText = data.admin.tasks || 0;
@@ -343,50 +340,35 @@
                         document.getElementById('adm-withdrawals-list').innerHTML = '<p style="color: var(--hint-color);">Нет заявок на вывод</p>';
                     }
 
-                    // Управление заданиями в админке
+                    // Управление заданиями в админке с кнопкой удаления
                     if (data.admin.tasks_list && data.admin.tasks_list.length > 0) {
                         document.getElementById('adm-tasks-list').innerHTML = data.admin.tasks_list.map(t => `
-                            <div class="item-card">
-                                <p><b>${t.title}</b><br><span style="color: var(--success-color);">Награда: ${t.reward} GRAM</span></p>
-                                <button class="btn btn-danger" style="padding:6px; margin:0;" onclick="deleteAdminTask('${t.id}')">Удалить задание</button>
+                            <div class="item-card" style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <b>${t.title}</b><br>
+                                    <span style="color: var(--success-color); font-size: 13px;">Награда: ${t.reward} GRAM</span>
+                                </div>
+                                <button class="btn btn-danger" style="width: auto; margin: 0; padding: 6px 12px; font-size: 13px;" onclick="deleteAdminTask('${t.id}')">Удалить</button>
                             </div>
                         `).join('');
                     } else {
                         document.getElementById('adm-tasks-list').innerHTML = '<p style="color: var(--hint-color);">Нет активных заданий</p>';
                     }
 
-                    // УНИВЕРСАЛЬНЫЙ ПОИСК МАССИВА ПОЛЬЗОВАТЕЛЕЙ (ищет любое поле массива в объекте admin)
-                    let usersListArray = data.admin.users_list || data.admin.users || data.admin.items || data.admin.all_users;
-                    if (!Array.isArray(usersListArray)) {
-                        // Если это не массив, но внутри объекта admin есть другой массив — найдем его автоматически
-                        for (let key in data.admin) {
-                            if (Array.isArray(data.admin[key]) && data.admin[key].length > 0 && data.admin[key][0].id) {
-                                usersListArray = data.admin[key];
-                                break;
-                            }
-                        }
-                    }
-
-                    if (Array.isArray(usersListArray) && usersListArray.length > 0) {
+                    // Список пользователей в модальном окне
+                    const usersListArray = data.admin.users_list || data.admin.users || [];
+                    if (usersListArray.length > 0) {
                         document.getElementById('adm-users-list').innerHTML = usersListArray.map(u => `
                             <div class="item-card">
-                                <p><b>${u.name || u.first_name || u.username || 'Без имени'}</b> (ID: ${u.id})<br>Баланс: <span style="color: var(--success-color);">${(u.balance || 0).toFixed(3)} GRAM</span> | Статус: ${u.is_banned ? '<span style="color:var(--danger-color)">Забанен</span>' : '<span style="color:var(--success-color)">Активен</span>'}</p>
+                                <p><b>${u.name || 'Без имени'}</b> (ID: ${u.id})<br>Баланс: <span style="color: var(--success-color);">${(u.balance || 0).toFixed(3)} GRAM</span></p>
                                 <div class="row-group">
                                     <input type="text" id="u-new-bal-${u.id}" class="input-field" style="margin:0; padding:8px;" placeholder="+10 или -5" value="+">
                                     <button class="btn" style="margin:0; padding:8px 12px; width:auto;" onclick="updateUserBalance('${u.id}')">Изменить</button>
                                 </div>
-                                <button class="btn ${u.is_banned ? 'btn-success' : 'btn-danger'}" style="padding:6px; margin-top:8px;" onclick="toggleUserBan('${u.id}', ${u.is_banned})">
-                                    ${u.is_banned ? 'Разблокировать' : 'Заблокировать (Бан)'}
-                                </button>
                             </div>
                         `).join('');
                     } else {
-                        // Выводим диагностику, чтобы видеть структуру ответа сервера прямо в окне
-                        const debugJson = JSON.stringify(data.admin, null, 2);
-                        document.getElementById('adm-users-list').innerHTML = `
-                            <p style="color: var(--warning-color); font-size: 13px;">⚠️ Массив пользователей не найден в ответе API.</p>
-                            <p style="color: var(--hint-color); font-size: 11px; word-break: break-all;"><b>Сырые данные admin:</b><br>${debugJson}</p>
-                        `;
+                        document.getElementById('adm-users-list').innerHTML = '<p style="color: var(--hint-color);">Нет данных о пользователях</p>';
                     }
                 }
 
@@ -408,11 +390,10 @@
                     }
                 }
 
-                // Реферальные данные и список
+                // Реферальные данные
                 if (data.ref) {
                     userRefLink = data.ref.link;
                     document.getElementById('ref-count').innerText = data.ref.count;
-                    
                     if (data.ref.referred_users && data.ref.referred_users.length > 0) {
                         document.getElementById('ref-list-container').innerHTML = data.ref.referred_users.map(refUser => `
                             <div style="padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; display: flex; justify-content: space-between;">
@@ -420,8 +401,6 @@
                                 <span style="color: var(--success-color);">+${refUser.earned || 0} GRAM</span>
                             </div>
                         `).join('');
-                    } else {
-                        document.getElementById('ref-list-container').innerHTML = '<p style="color: var(--hint-color); font-size: 13px;">У вас пока нет приглашенных пользователей.</p>';
                     }
                 }
             } catch (e) {
@@ -461,14 +440,14 @@
             const budget = parseFloat(document.getElementById('new-task-budget').value);
             
             if (!title || !reward || reward < 0.001) {
-                tg.showAlert('Заполните корректно название и награду (минимальная 0.001)!');
+                tg.showAlert('Заполните корректно название и награду!');
                 return;
             }
 
             const res = await apiRequest('/api/admin/tasks', 'POST', { title, type: 'url', url, reward, budget });
             if (res.error) tg.showAlert(res.error);
             else {
-                tg.showAlert('Задание успешно создано, бот разослал уведомления пользователям!');
+                tg.showAlert('Задание успешно создано!');
                 closeTaskModal();
                 loadData();
             }
@@ -504,16 +483,6 @@
             }
         }
 
-        async function toggleUserBan(userId, currentStatus) {
-            const action = currentStatus ? 'unban' : 'ban';
-            const res = await apiRequest(`/api/admin/users/${userId}/${action}`, 'POST');
-            if (res.error) tg.showAlert(res.error);
-            else {
-                tg.showAlert(currentStatus ? 'Пользователь разблокирован.' : 'Пользователь забанен.');
-                loadData();
-            }
-        }
-
         async function sendBroadcast() {
             const text = document.getElementById('broadcast-text').value;
             if (!text.trim()) {
@@ -529,37 +498,23 @@
             }
         }
 
-        function connectWallet() {
-            tg.showAlert('Подключение TON Connect выполнено успешно!');
-        }
+        function connectWallet() { tg.showAlert('Подключение TON Connect выполнено успешно!'); }
 
         async function makeDeposit() {
             const amount = parseFloat(document.getElementById('deposit-amount').value);
-            if (!amount || amount <= 0) {
-                tg.showAlert('Введите корректную сумму пополнения');
-                return;
-            }
+            if (!amount || amount <= 0) { tg.showAlert('Введите корректную сумму'); return; }
             const res = await apiRequest('/api/deposits', 'POST', { amount });
             if (res.error) tg.showAlert(res.error);
-            else {
-                tg.showAlert(`Заявка на пополнение создана! Ожидайте подтверждения админом.`);
-                loadData();
-            }
+            else { tg.showAlert('Заявка на пополнение создана!'); loadData(); }
         }
 
         async function makeWithdrawal() {
             const amount = parseFloat(document.getElementById('withdraw-amount').value);
             const address = document.getElementById('withdraw-address').value;
-            if (!amount || amount <= 0 || !address) {
-                tg.showAlert('Заполните адрес и сумму вывода!');
-                return;
-            }
+            if (!amount || amount <= 0 || !address) { tg.showAlert('Заполните адрес и сумму!'); return; }
             const res = await apiRequest('/api/withdrawals', 'POST', { amount, address });
             if (res.error) tg.showAlert(res.error);
-            else {
-                tg.showAlert('Заявка на вывод отправлена администратору (комиссия 7% учтена).');
-                loadData();
-            }
+            else { tg.showAlert('Заявка на вывод отправлена.'); loadData(); }
         }
 
         async function handleDeposit(depId, status) {
@@ -578,9 +533,8 @@
         }
 
         function shareRefLink() {
-            const shareText = encodeURIComponent("Присоединяйся к крипто-ферме, выполняй задания и зарабатывай GRAM! 🚀\n" + userRefLink);
-            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(userRefLink)}&text=${shareText}`;
-            window.open(shareUrl, '_blank');
+            const shareText = encodeURIComponent("Присоединяйся к крипто-ферме и зарабатывай GRAM! 🚀\n" + userRefLink);
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(userRefLink)}&text=${shareText}`, '_blank');
         }
 
         window.addEventListener('DOMContentLoaded', loadData);
