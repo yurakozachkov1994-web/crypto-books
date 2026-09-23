@@ -98,7 +98,7 @@
 </nav>
 
 <script>
-const API_URL = "https://YOUR-WORKER.workers.dev"; // Замените на URL вашего Cloudflare Worker после деплоя
+const API_URL = "https://crypto-farm-api.yurakozachkov1994.workers.dev";
 const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
 let state = {user:null,tasks:[],ref:null,admin:null};
 let adController = null;
@@ -136,7 +136,6 @@ async function deposit(){
     const amountVal = +document.getElementById('depositAmount').value;
     if(!amountVal || amountVal <= 0) { alert('Введите корректную сумму'); return; }
     
-    // Создаем интент пополнения на сервере (Worker выдает уникальный комментарий и сумму в нанотонах)
     const res = await api('/api/deposits', { amount: amountVal });
     const { id, reference, amount_nano } = res;
     
@@ -145,7 +144,7 @@ async function deposit(){
       return;
     }
 
-    const recipientAddress = "UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh"; // Ваш кошелек
+    const recipientAddress = "UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh";
     const payloadB64 = commentPayload(reference);
 
     const transaction = {
