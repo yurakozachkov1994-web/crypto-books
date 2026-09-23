@@ -312,8 +312,8 @@
                 // Админ-панель
                 if (data.admin) {
                     document.getElementById('admin-tab-btn').style.display = 'block';
-                    document.getElementById('adm-users-cnt').innerText = data.admin.users;
-                    document.getElementById('adm-tasks-cnt').innerText = data.admin.tasks;
+                    document.getElementById('adm-users-cnt').innerText = data.admin.users || 0;
+                    document.getElementById('adm-tasks-cnt').innerText = data.admin.tasks || 0;
 
                     // Депозиты
                     if (data.admin.deposit_items && data.admin.deposit_items.length > 0) {
@@ -353,11 +353,12 @@
                         document.getElementById('adm-tasks-list').innerHTML = '<p style="color: var(--hint-color);">Нет активных заданий</p>';
                     }
 
-                    // Список пользователей в модальном окне
-                    if (data.admin.users_list && data.admin.users_list.length > 0) {
-                        document.getElementById('adm-users-list').innerHTML = data.admin.users_list.map(u => `
+                    // Список пользователей в модальном окне (поддерживаем разные варианты ключей API: users_list или users)
+                    const usersListArray = data.admin.users_list || data.admin.users || [];
+                    if (usersListArray.length > 0) {
+                        document.getElementById('adm-users-list').innerHTML = usersListArray.map(u => `
                             <div class="item-card">
-                                <p><b>${u.name || 'Без имени'}</b> (ID: ${u.id})<br>Баланс: <span style="color: var(--success-color);">${u.balance.toFixed(3)} GRAM</span> | Статус: ${u.is_banned ? '<span style="color:var(--danger-color)">Забанен</span>' : '<span style="color:var(--success-color)">Активен</span>'}</p>
+                                <p><b>${u.name || u.first_name || 'Без имени'}</b> (ID: ${u.id})<br>Баланс: <span style="color: var(--success-color);">${(u.balance || 0).toFixed(3)} GRAM</span> | Статус: ${u.is_banned ? '<span style="color:var(--danger-color)">Забанен</span>' : '<span style="color:var(--success-color)">Активен</span>'}</p>
                                 <div class="row-group">
                                     <input type="text" id="u-new-bal-${u.id}" class="input-field" style="margin:0; padding:8px;" placeholder="+10 или -5" value="+">
                                     <button class="btn" style="margin:0; padding:8px 12px; width:auto;" onclick="updateUserBalance('${u.id}')">Изменить</button>
