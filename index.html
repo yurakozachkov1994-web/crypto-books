@@ -215,6 +215,7 @@
             <h4 style="margin-top: 0;">Статистика системы</h4>
             <p>Всего пользователей: <span id="adm-users-cnt">0</span></p>
             <p>Активных заданий: <span id="adm-tasks-cnt">0</span></p>
+            <button class="btn btn-success" style="margin-top: 10px;" onclick="openUsersModal()">👥 Управление пользователями и балансом</button>
         </div>
 
         <div class="card" style="text-align: left;">
@@ -231,9 +232,6 @@
 
         <h4>📋 Управление заданиями</h4>
         <div id="adm-tasks-list"><p style="color: var(--hint-color);">Загрузка заданий...</p></div>
-
-        <h4>👥 Управление пользователями и балансом</h4>
-        <div id="adm-users-list"><p style="color: var(--hint-color);">Загрузка пользователей...</p></div>
     </div>
 
     <!-- Модальное окно создания задания -->
@@ -247,6 +245,20 @@
             <input type="number" id="new-task-budget" class="input-field" placeholder="Общий бюджет (сумма для выплат)" step="0.01" min="0.01">
             <button class="btn" onclick="submitNewTask()">Создать и уведомить</button>
             <button class="btn btn-danger" style="margin-top: 6px;" onclick="closeTaskModal()">Отмена</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно управления пользователями -->
+    <div id="users-modal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="margin: 0;">👥 Пользователи</h3>
+                <button class="btn btn-danger" style="width: auto; margin: 0; padding: 6px 12px;" onclick="closeUsersModal()">Закрыть</button>
+            </div>
+            <p style="font-size: 12px; color: var(--hint-color);">Введите число со знаком «+» (например: +10) для начисления или «-» (например: -5) для списания.</p>
+            <div id="adm-users-list">
+                <p style="color: var(--hint-color);">Загрузка пользователей...</p>
+            </div>
         </div>
     </div>
 
@@ -341,14 +353,14 @@
                         document.getElementById('adm-tasks-list').innerHTML = '<p style="color: var(--hint-color);">Нет активных заданий</p>';
                     }
 
-                    // Управление пользователями, балансом и бан-лист
+                    // Список пользователей в модальном окне
                     if (data.admin.users_list && data.admin.users_list.length > 0) {
                         document.getElementById('adm-users-list').innerHTML = data.admin.users_list.map(u => `
                             <div class="item-card">
-                                <p><b>${u.name || 'Без имени'}</b> (ID: ${u.id})<br>Баланс: <span id="u-bal-${u.id}">${u.balance.toFixed(3)}</span> GRAM | Статус: ${u.is_banned ? '<span style="color:var(--danger-color)">Забанен</span>' : '<span style="color:var(--success-color)">Активен</span>'}</p>
+                                <p><b>${u.name || 'Без имени'}</b> (ID: ${u.id})<br>Баланс: <span style="color: var(--success-color);">${u.balance.toFixed(3)} GRAM</span> | Статус: ${u.is_banned ? '<span style="color:var(--danger-color)">Забанен</span>' : '<span style="color:var(--success-color)">Активен</span>'}</p>
                                 <div class="row-group">
-                                    <input type="number" id="u-new-bal-${u.id}" class="input-field" style="margin:0; padding:6px;" placeholder="+/- сумма (напр. 10 или -5)" step="0.001">
-                                    <button class="btn" style="margin:0; padding:6px 12px; width:auto;" onclick="updateUserBalance('${u.id}')">Изменить</button>
+                                    <input type="text" id="u-new-bal-${u.id}" class="input-field" style="margin:0; padding:8px;" placeholder="+10 или -5" value="+">
+                                    <button class="btn" style="margin:0; padding:8px 12px; width:auto;" onclick="updateUserBalance('${u.id}')">Изменить</button>
                                 </div>
                                 <button class="btn ${u.is_banned ? 'btn-success' : 'btn-danger'}" style="padding:6px; margin-top:8px;" onclick="toggleUserBan('${u.id}', ${u.is_banned})">
                                     ${u.is_banned ? 'Разблокировать' : 'Заблокировать (Бан)'}
@@ -421,6 +433,9 @@
         function openTaskModal() { document.getElementById('task-modal').style.display = 'flex'; }
         function closeTaskModal() { document.getElementById('task-modal').style.display = 'none'; }
 
+        function openUsersModal() { document.getElementById('users-modal').style.display = 'flex'; }
+        function closeUsersModal() { document.getElementById('users-modal').style.display = 'none'; }
+
         async function submitNewTask() {
             const title = document.getElementById('new-task-title').value;
             const url = document.getElementById('new-task-url').value;
@@ -453,20 +468,20 @@
 
         async function updateUserBalance(userId) {
             const amountInput = document.getElementById(`u-new-bal-${userId}`);
-            const amount = parseFloat(amountInput.value);
+            const rawVal = amountInput.value.trim();
+            const amount = parseFloat(rawVal);
             
             if (isNaN(amount)) {
-                tg.showAlert('Введите корректное число для изменения баланса!');
+                tg.showAlert('Введите корректное значение со знаком + или - (например: +10 или -5)!');
                 return;
             }
 
-            // Отправляем сумму (положительную для начисления или отрицательную для списания)
             const res = await apiRequest(`/api/admin/users/${userId}/balance`, 'POST', { amount });
             if (res.error) {
                 tg.showAlert(res.error);
             } else {
-                tg.showAlert('Баланс пользователя успешно скорректирован!');
-                amountInput.value = '';
+                tg.showAlert('Баланс пользователя успешно изменен!');
+                amountInput.value = '+';
                 loadData();
             }
         }
