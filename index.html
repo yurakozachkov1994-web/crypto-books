@@ -15,6 +15,7 @@
             --button-text: var(--tg-theme-button-text-color, #ffffff);
             --danger-color: #ef4444;
             --success-color: #22c55e;
+            --warning-color: #eab308;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -60,7 +61,8 @@
         }
         .btn-danger { background-color: var(--danger-color); }
         .btn-success { background-color: var(--success-color); }
-        .input-field {
+        .btn-warning { background-color: var(--warning-color); color: #000; }
+        .input-field, textarea.input-field {
             width: 100%;
             padding: 12px;
             border-radius: 10px;
@@ -70,6 +72,7 @@
             font-size: 15px;
             margin-top: 8px;
             box-sizing: border-box;
+            font-family: inherit;
         }
         .nav-bar {
             position: fixed;
@@ -103,6 +106,7 @@
             padding: 14px;
             margin-bottom: 10px;
             text-align: left;
+            border: 1px solid rgba(255,255,255,0.05);
         }
         .modal {
             position: fixed;
@@ -121,6 +125,13 @@
             width: 100%;
             max-width: 400px;
             box-sizing: border-box;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .row-group {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
         }
     </style>
 </head>
@@ -131,7 +142,7 @@
             <h2 id="username">Загрузка...</h2>
             <p>ID: <span id="userid">-</span></p>
         </div>
-        <button id="admin-tab-btn" class="btn" style="width: auto; padding: 6px 12px; margin: 0; display: none; background: #eab308; color: #000;" onclick="switchTab('admin', this)">⚙️ Админка</button>
+        <button id="admin-tab-btn" class="btn btn-warning" style="width: auto; padding: 6px 12px; margin: 0; display: none;" onclick="switchTab('admin', this)">⚙️ Админка</button>
     </div>
 
     <!-- Вкладка: Главная / Фарминг -->
@@ -186,34 +197,55 @@
             <h3>👥 Реферальная программа</h3>
             <p style="color: var(--hint-color); font-size: 14px;">Получайте <b style="color: #22c55e;">10% от пополнений</b> и <b style="color: #22c55e;">15% от заданий</b> друзей!</p>
             <p style="font-size: 16px; font-weight: bold; margin: 10px 0;">Приглашено: <span id="ref-count">0</span></p>
-            <button class="btn" onclick="copyRefLink()">Скопировать реферальную ссылку</button>
+            <button class="btn" onclick="copyRefLink()">📋 Скопировать ссылку</button>
+            <button class="btn btn-success" onclick="shareRefLink()">📤 Отправить другу в Telegram</button>
         </div>
-        <div id="ref-history"></div>
+        <div class="card" style="text-align: left;">
+            <h4 style="margin-top: 0;">Список ваших рефералов</h4>
+            <div id="ref-list-container">
+                <p style="color: var(--hint-color); font-size: 13px;">У вас пока нет приглашенных пользователей.</p>
+            </div>
+        </div>
     </div>
 
     <!-- Вкладка: Админ-панель -->
     <div id="tab-admin" class="tab-content">
         <h3>🛠 Панель Администратора</h3>
         <div class="card" style="text-align: left;">
-            <h4>Статистика системы</h4>
+            <h4 style="margin-top: 0;">Статистика системы</h4>
             <p>Всего пользователей: <span id="adm-users-cnt">0</span></p>
             <p>Активных заданий: <span id="adm-tasks-cnt">0</span></p>
         </div>
-        <h4>Заявки на депозиты (ожидают)</h4>
+
+        <div class="card" style="text-align: left;">
+            <h4 style="margin-top: 0;">📢 Массовая рассылка</h4>
+            <textarea id="broadcast-text" class="input-field" rows="3" placeholder="Введите текст уведомления для рассылки всем пользователям..."></textarea>
+            <button class="btn btn-warning" onclick="sendBroadcast()">Отправить рассылку</button>
+        </div>
+
+        <h4>⚡ Заявки на депозиты</h4>
         <div id="adm-deposits-list"><p style="color: var(--hint-color);">Нет заявок</p></div>
-        <h4>Заявки на вывод (ожидают)</h4>
+
+        <h4>⚡ Заявки на вывод</h4>
         <div id="adm-withdrawals-list"><p style="color: var(--hint-color);">Нет заявок</p></div>
+
+        <h4>📋 Управление заданиями</h4>
+        <div id="adm-tasks-list"><p style="color: var(--hint-color);">Загрузка заданий...</p></div>
+
+        <h4>👥 Управление пользователями и бан-лист</h4>
+        <div id="adm-users-list"><p style="color: var(--hint-color);">Загрузка пользователей...</p></div>
     </div>
 
     <!-- Модальное окно создания задания -->
     <div id="task-modal" class="modal">
         <div class="modal-content">
             <h3>Создать задание</h3>
-            <input type="text" id="new-task-title" class="input-field" placeholder="Название / комментарий">
+            <p style="font-size: 12px; color: var(--hint-color);">При создании задания бот автоматически отправит уведомление всем пользователям!</p>
+            <input type="text" id="new-task-title" class="input-field" placeholder="Название / описание задания">
             <input type="text" id="new-task-url" class="input-field" placeholder="Ссылка (например, на канал или сайт)">
-            <input type="number" id="new-task-reward" class="input-field" placeholder="Награда за выполнение (мин. 0.001, рек. 0.01)" step="0.001" min="0.001">
+            <input type="number" id="new-task-reward" class="input-field" placeholder="Награда за выполнение (мин. 0.001)" step="0.001" min="0.001">
             <input type="number" id="new-task-budget" class="input-field" placeholder="Общий бюджет (сумма для выплат)" step="0.01" min="0.01">
-            <button class="btn" onclick="submitNewTask()">Создать задание</button>
+            <button class="btn" onclick="submitNewTask()">Создать и уведомить</button>
             <button class="btn btn-danger" style="margin-top: 6px;" onclick="closeTaskModal()">Отмена</button>
         </div>
     </div>
@@ -265,12 +297,13 @@
                     document.getElementById('completed-count').innerText = data.user.completed_tasks;
                 }
                 
-                // Проверка прав администратора (пока открыта всем для удобства проверки)
+                // Админ-панель
                 if (data.admin) {
                     document.getElementById('admin-tab-btn').style.display = 'block';
                     document.getElementById('adm-users-cnt').innerText = data.admin.users;
                     document.getElementById('adm-tasks-cnt').innerText = data.admin.tasks;
 
+                    // Депозиты
                     if (data.admin.deposit_items && data.admin.deposit_items.length > 0) {
                         document.getElementById('adm-deposits-list').innerHTML = data.admin.deposit_items.map(d => `
                             <div class="item-card">
@@ -283,19 +316,51 @@
                         document.getElementById('adm-deposits-list').innerHTML = '<p style="color: var(--hint-color);">Нет активных пополнений</p>';
                     }
 
+                    // Выводы
                     if (data.admin.withdrawal_items && data.admin.withdrawal_items.length > 0) {
                         document.getElementById('adm-withdrawals-list').innerHTML = data.admin.withdrawal_items.map(w => `
                             <div class="item-card">
                                 <p><b>Пользователь:</b> ${w.user_name} | <b>Сумма:</b> ${w.amount} GRAM<br><small>Адрес: ${w.address}</small></p>
-                                <button class="btn btn-success" style="padding:6px; margin:4px 0;" onclick="handleWithdrawal('${w.id}', 'approved')">Одобрить (отправить)</button>
-                                <button class="btn btn-danger" style="padding:6px; margin:0;" onclick="handleWithdrawal('${w.id}', 'rejected')">Отклонить (вернуть)</button>
+                                <button class="btn btn-success" style="padding:6px; margin:4px 0;" onclick="handleWithdrawal('${w.id}', 'approved')">Одобрить</button>
+                                <button class="btn btn-danger" style="padding:6px; margin:0;" onclick="handleWithdrawal('${w.id}', 'rejected')">Отклонить</button>
                             </div>
                         `).join('');
                     } else {
                         document.getElementById('adm-withdrawals-list').innerHTML = '<p style="color: var(--hint-color);">Нет заявок на вывод</p>';
                     }
+
+                    // Управление заданиями в админке
+                    if (data.admin.tasks_list && data.admin.tasks_list.length > 0) {
+                        document.getElementById('adm-tasks-list').innerHTML = data.admin.tasks_list.map(t => `
+                            <div class="item-card">
+                                <p><b>${t.title}</b><br><span style="color: var(--success-color);">Награда: ${t.reward} GRAM</span></p>
+                                <button class="btn btn-danger" style="padding:6px; margin:0;" onclick="deleteAdminTask('${t.id}')">Удалить задание</button>
+                            </div>
+                        `).join('');
+                    } else {
+                        document.getElementById('adm-tasks-list').innerHTML = '<p style="color: var(--hint-color);">Нет активных заданий</p>';
+                    }
+
+                    // Управление пользователями и бан-лист
+                    if (data.admin.users_list && data.admin.users_list.length > 0) {
+                        document.getElementById('adm-users-list').innerHTML = data.admin.users_list.map(u => `
+                            <div class="item-card">
+                                <p><b>${u.name || 'Без имени'}</b> (ID: ${u.id})<br>Баланс: <span id="u-bal-${u.id}">${u.balance.toFixed(3)}</span> GRAM | Статус: ${u.is_banned ? '<span style="color:var(--danger-color)">Забанен</span>' : '<span style="color:var(--success-color)">Активен</span>'}</p>
+                                <div class="row-group">
+                                    <input type="number" id="u-new-bal-${u.id}" class="input-field" style="margin:0; padding:6px;" placeholder="Новый баланс" step="0.001">
+                                    <button class="btn" style="margin:0; padding:6px 12px; width:auto;" onclick="updateUserBalance('${u.id}')">Изменить</button>
+                                </div>
+                                <button class="btn ${u.is_banned ? 'btn-success' : 'btn-danger'}" style="padding:6px; margin-top:8px;" onclick="toggleUserBan('${u.id}', ${u.is_banned})">
+                                    ${u.is_banned ? 'Разблокировать' : 'Заблокировать (Бан)'}
+                                </button>
+                            </div>
+                        `).join('');
+                    } else {
+                        document.getElementById('adm-users-list').innerHTML = '<p style="color: var(--hint-color);">Нет данных о пользователях</p>';
+                    }
                 }
 
+                // Задания для обычных пользователей
                 if (data.tasks) {
                     const container = document.getElementById('tasks-container');
                     if (data.tasks.length === 0) {
@@ -312,9 +377,22 @@
                         `).join('');
                     }
                 }
+
+                // Реферальные данные и список
                 if (data.ref) {
                     userRefLink = data.ref.link;
                     document.getElementById('ref-count').innerText = data.ref.count;
+                    
+                    if (data.ref.referred_users && data.ref.referred_users.length > 0) {
+                        document.getElementById('ref-list-container').innerHTML = data.ref.referred_users.map(refUser => `
+                            <div style="padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; display: flex; justify-content: space-between;">
+                                <span>👤 ${refUser.name}</span>
+                                <span style="color: var(--success-color);">+${refUser.earned || 0} GRAM</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        document.getElementById('ref-list-container').innerHTML = '<p style="color: var(--hint-color); font-size: 13px;">У вас пока нет приглашенных пользователей.</p>';
+                    }
                 }
             } catch (e) {
                 console.error(e);
@@ -347,18 +425,68 @@
             const title = document.getElementById('new-task-title').value;
             const url = document.getElementById('new-task-url').value;
             const reward = parseFloat(document.getElementById('new-task-reward').value);
+            const budget = parseFloat(document.getElementById('new-task-budget').value);
             
             if (!title || !reward || reward < 0.001) {
                 tg.showAlert('Заполните корректно название и награду (минимальная 0.001)!');
                 return;
             }
 
-            const res = await apiRequest('/api/admin/tasks', 'POST', { title, type: 'url', url, reward });
+            const res = await apiRequest('/api/admin/tasks', 'POST', { title, type: 'url', url, reward, budget });
             if (res.error) tg.showAlert(res.error);
             else {
-                tg.showAlert(res.message);
+                tg.showAlert('Задание успешно создано, бот разослал уведомления пользователям!');
                 closeTaskModal();
                 loadData();
+            }
+        }
+
+        async function deleteAdminTask(taskId) {
+            if (!confirm('Вы уверены, что хотите удалить это задание?')) return;
+            const res = await apiRequest(`/api/admin/tasks/${taskId}`, 'DELETE');
+            if (res.error) tg.showAlert(res.error);
+            else {
+                tg.showAlert('Задание удалено.');
+                loadData();
+            }
+        }
+
+        async function updateUserBalance(userId) {
+            const newBalance = parseFloat(document.getElementById(`u-new-bal-${userId}`).value);
+            if (isNaN(newBalance)) {
+                tg.showAlert('Введите корректное число для баланса!');
+                return;
+            }
+            const res = await apiRequest(`/api/admin/users/${userId}/balance`, 'POST', { balance: newBalance });
+            if (res.error) tg.showAlert(res.error);
+            else {
+                tg.showAlert('Баланс пользователя успешно обновлен!');
+                loadData();
+            }
+        }
+
+        async function toggleUserBan(userId, currentStatus) {
+            const action = currentStatus ? 'unban' : 'ban';
+            const res = await apiRequest(`/api/admin/users/${userId}/${action}`, 'POST');
+            if (res.error) tg.showAlert(res.error);
+            else {
+                tg.showAlert(currentStatus ? 'Пользователь разблокирован.' : 'Пользователь забанен.');
+                loadData();
+            }
+        }
+
+        async function sendBroadcast() {
+            const text = document.getElementById('broadcast-text').value;
+            if (!text.trim()) {
+                tg.showAlert('Введите текст для рассылки!');
+                return;
+            }
+            if (!confirm('Отправить это уведомление всем пользователям бота?')) return;
+            const res = await apiRequest('/api/admin/broadcast', 'POST', { text });
+            if (res.error) tg.showAlert(res.error);
+            else {
+                tg.showAlert('Рассылка успешно запущена!');
+                document.getElementById('broadcast-text').value = '';
             }
         }
 
@@ -408,6 +536,12 @@
         function copyRefLink() {
             navigator.clipboard.writeText(userRefLink);
             tg.showAlert('Реферальная ссылка скопирована!');
+        }
+
+        function shareRefLink() {
+            const shareText = encodeURIComponent("Присоединяйся к крипто-ферме, выполняй задания и зарабатывай GRAM! 🚀\n" + userRefLink);
+            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(userRefLink)}&text=${shareText}`;
+            window.open(shareUrl, '_blank');
         }
 
         window.addEventListener('DOMContentLoaded', loadData);
