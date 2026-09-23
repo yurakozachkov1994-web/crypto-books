@@ -62,7 +62,7 @@
 
   <section id="wallet" class="page">
     <h2>Кошелёк</h2>
-    <div class="card"><b>Пополнение GRAM</b><p class="muted small">Оплата идёт прямо на ваш указанный кошелёк (<code style="font-size:11px; word-break:break-all;">UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh</code>). После транзакции Worker сам проверяет блокчейн, сумму и уникальный комментарий. Ручное подтверждение не требуется.</p>
+    <div class="card"><b>Пополнение GRAM</b><p class="muted small">Оплата идет на кошелек: <code style="font-size:11px; word-break:break-all;">UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh</code>[cite: 10]. После отправки транзакции через TON Connect Worker автоматически проверяет блокчейн и зачисляет средства[cite: 10].</p>
       <label>Сумма<input id="depositAmount" type="number" min="0.1" step="0.1" value="1"></label>
       <div id="ton-connect" style="margin:10px 0"></div>
       <button onclick="deposit()">💎 Оплатить GRAM</button>
@@ -98,7 +98,7 @@
 </nav>
 
 <script>
-const API_URL = "https://crypto-farm-api.yurakozachkov1994.workers.dev";
+const API_URL = "https://YOUR-WORKER.workers.dev"; // Замените на URL вашего Cloudflare Worker
 const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
 let state = {user:null,tasks:[],ref:null,admin:null};
 let adController = null;
@@ -116,13 +116,16 @@ function render(){
  if(state.ref){document.getElementById('refLink').textContent=state.ref.link;document.getElementById('refCount').textContent=state.ref.count||0;document.getElementById('refHistory').innerHTML=(state.ref.history||[]).map(x=>`<div class="card small">${esc(x.description)} <b>+${(+x.amount).toFixed(3)}</b></div>`).join('')}
  const admin=state.admin;if(admin){document.getElementById('adminNav').classList.remove('hidden');document.getElementById('adminCreateBtn').classList.remove('hidden');document.getElementById('adminStats').innerHTML=`Пользователей: <b>${admin.users}</b><br>Заданий: <b>${admin.tasks}</b><br>Заявок на вывод: <b>${admin.withdrawals}</b>`;document.getElementById('adminDeposits').innerHTML=admin.deposit_items.map(d=>`<div class="card"><b>Пополнение ${d.amount} GRAM</b><p class="small">${esc(d.user_name)} · ${d.id}</p><button onclick="approveDeposit('${d.id}')">Подтвердить</button> <button class="danger" onclick="rejectDeposit('${d.id}')">Отклонить</button></div>`).join('')||'';document.getElementById('adminWithdrawals').innerHTML=admin.withdrawal_items.map(w=>`<div class="card"><b>${esc(w.user_name)}</b><p>${w.amount} GRAM → ${esc(w.address)}</p><button onclick="approveWithdraw('${w.id}')">Одобрить</button> <button class="danger" onclick="rejectWithdraw('${w.id}')">Отклонить</button></div>`).join('')||'';document.getElementById('adminUsers').innerHTML='<b>Последние пользователи</b>'+admin.user_items.map(u=>`<p class="small">${esc(u.name)} · ${u.id} · ${(+u.balance).toFixed(3)} GRAM</p>`).join('')}}
 }
+
 async function initTonConnect(){
   if(!window.TON_CONNECT_UI) return;
   try{
     tonConnectUI=new TON_CONNECT_UI.TonConnectUI({manifestUrl:new URL('tonconnect-manifest.json',location.href).href,buttonRootId:'ton-connect'});
   }catch(e){console.warn('TON Connect:',e)}
 }
+
 function bytesToBase64(bytes){let s='';for(const b of bytes)s+=String.fromCharCode(b);return btoa(s)}
+
 function commentPayload(comment){
   const data=new TextEncoder().encode(comment), all=new Uint8Array(4+data.length);all.set(data,4);
   const cell=new Uint8Array(2+all.length);cell[0]=0;cell[1]=all.length*2;cell.set(all,2);
@@ -131,6 +134,7 @@ function commentPayload(comment){
   boc.set([0xb5,0xee,0x9c,0x72],p);p+=4;put(1);put(1);put(1);put(1);put(0);put(cell.length);put(0);boc.set(cell,p);
   return bytesToBase64(boc);
 }
+
 async function deposit(){
   try {
     const amountVal = +document.getElementById('depositAmount').value;
@@ -140,11 +144,11 @@ async function deposit(){
     const { id, reference, amount_nano } = res;
     
     if(!tonConnectUI || !tonConnectUI.connected) {
-      alert('Пожалуйста, подключите кошелек через кнопку TON Connect выше.');
+      alert('Пожалуйста, подключите кошелек через кнопку TON Connect во вкладке Кошелёк.');
       return;
     }
 
-    const recipientAddress = "UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh";
+    const recipientAddress = "UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh";[cite: 10]
     const payloadB64 = commentPayload(reference);
 
     const transaction = {
@@ -168,9 +172,11 @@ async function deposit(){
     document.getElementById('depositStatus').textContent = '';
   }
 }
+
 async function waitDeposit(id){
   clearInterval(activeDepositTimer);
   const el=document.getElementById('depositStatus');
+  el.textContent='⏳ Ждём подтверждение блокчейна…';
   let tries=0;
   activeDepositTimer=setInterval(async()=>{
     tries++;
@@ -180,19 +186,20 @@ async function waitDeposit(id){
         clearInterval(activeDepositTimer);el.innerHTML=`<span class="ok">✅ Пополнение подтверждено: +${(+d.amount).toFixed(3)} GRAM</span>`;await load();return;
       }
       if(d.status==='rejected'){clearInterval(activeDepositTimer);el.textContent='❌ Заявка отклонена';return}
-      if(tries>=60){clearInterval(activeDepositTimer);el.textContent='⏳ Транзакция ещё не найдена. Worker продолжит проверку в фоновом режиме.'}
-    }catch(e){if(tries>=60){clearInterval(activeDepositTimer);el.textContent='Проверка временно недоступна.'}}
+      if(tries>=60){clearInterval(activeDepositTimer);el.textContent='⏳ Транзакция ещё не найдена. Можно открыть приложение позже — Worker продолжит автоматическую проверку.'}
+    }catch(e){if(tries>=60){clearInterval(activeDepositTimer);el.textContent='Проверка временно недоступна. Попробуйте обновить приложение.'}}
   },5000);
 }
+
 async function load(){try{const j=await api('/api/bootstrap');state=j;render();try{adController=window.Adsgram?.init({blockId:"49272"})}catch(e){console.warn(e)}await initTonConnect()}catch(e){alert(e.message)}}
-async function startTask(id){try{const j=await api('/api/tasks/start',{task_id:id});if(j.url)tg.openTelegramLink(j.url);await new Promise(r=>setTimeout(r,2500));if(confirm('Вы выполнили задание? Нажмите OK для проверки.')){const c=await api('/api/tasks/complete',{task_id:id});alert(c.message);await load()}}catch(e){alert(e.message)}}
+async function startTask(id){try{const j=await api('/api/tasks/start',{task_id:id});if(j.url)tg.openTelegramLink(j.url);else if(j.url)location.href=j.url;await new Promise(r=>setTimeout(r,2500));if(confirm('Вы выполнили задание? Нажмите OK для проверки.')){const c=await api('/api/tasks/complete',{task_id:id});alert(c.message);await load()}}catch(e){alert(e.message)}}
 async function createTask(){try{await api('/api/admin/tasks',{title:tTitle.value,type:tType.value,chat_username:tChat.value,url:tUrl.value,reward:+tReward.value});alert('Задание создано');toggle('taskForm');load()}catch(e){alert(e.message)}}
 async function withdraw(){try{const j=await api('/api/withdrawals',{amount:+withdrawAmount.value,address:withdrawAddress.value.trim()});alert(j.message);load()}catch(e){alert(e.message)}}
 async function approveDeposit(id){try{await api('/api/admin/deposits/'+id,{status:'approved'});load()}catch(e){alert(e.message)}}
 async function rejectDeposit(id){try{await api('/api/admin/deposits/'+id,{status:'rejected'});load()}catch(e){alert(e.message)}}
 async function approveWithdraw(id){try{await api('/api/admin/withdrawals/'+id,{status:'approved'});load()}catch(e){alert(e.message)}}
 async function rejectWithdraw(id){try{await api('/api/admin/withdrawals/'+id,{status:'rejected'});load()}catch(e){alert(e.message)}}
-async function showAd(){if(!adController){alert('Реклама пока недоступна.');return}try{await adController.show();const j=await api('/api/ads/reward',{});alert(j.message);load()}catch(e){alert('Реклама не засчитана: '+e.message)}}
+async function showAd(){if(!adController){alert('Реклама пока недоступна. Проверьте Block ID AdsGram.');return}try{await adController.show();const j=await api('/api/ads/reward',{});alert(j.message);load()}catch(e){alert('Реклама не засчитана: '+e.message)}}
 load();
 </script>
 </body>
