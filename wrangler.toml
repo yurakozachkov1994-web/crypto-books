@@ -1,0 +1,11 @@
+name = "crypto-farm-api"
+main = "index.js"
+compatibility_date = "2026-09-01"
+
+[triggers]
+crons = ["* * * * *"]
+
+[[d1_databases]]
+binding = "crypto_farm"
+database_name = "crypto-farm"
+database_id = "f0444c0b-40f5-4804-a0a1-63e07b8340d1"
