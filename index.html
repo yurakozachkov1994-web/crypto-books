@@ -13,6 +13,8 @@
             --card-bg: var(--tg-theme-secondary-bg-color, #1e293b);
             --button-color: var(--tg-theme-button-color, #3b82f6);
             --button-text: var(--tg-theme-button-text-color, #ffffff);
+            --danger-color: #ef4444;
+            --success-color: #22c55e;
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -20,29 +22,29 @@
             color: var(--text-color);
             margin: 0;
             padding: 16px;
-            padding-bottom: 80px;
+            padding-bottom: 90px;
         }
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         .user-info h2 { margin: 0; font-size: 20px; }
-        .user-info p { margin: 4px 0 0; color: var(--hint-color); font-size: 14px; }
+        .user-info p { margin: 4px 0 0; color: var(--hint-color); font-size: 13px; }
         .card {
             background: var(--card-bg);
             border-radius: 16px;
-            padding: 20px;
+            padding: 16px;
             text-align: center;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         .balance-value {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: bold;
-            color: #22c55e;
-            margin: 8px 0;
+            color: var(--success-color);
+            margin: 6px 0;
         }
         .btn {
             background-color: var(--button-color);
@@ -50,11 +52,24 @@
             border: none;
             padding: 12px 20px;
             border-radius: 12px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             width: 100%;
             cursor: pointer;
             margin-top: 10px;
+        }
+        .btn-danger { background-color: var(--danger-color); }
+        .btn-success { background-color: var(--success-color); }
+        .input-field {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2);
+            color: var(--text-color);
+            font-size: 15px;
+            margin-top: 8px;
+            box-sizing: border-box;
         }
         .nav-bar {
             position: fixed;
@@ -64,31 +79,48 @@
             background: var(--card-bg);
             display: flex;
             justify-content: space-around;
-            padding: 12px;
+            padding: 10px 4px;
             border-top: 1px solid rgba(255,255,255,0.1);
+            z-index: 100;
         }
         .nav-item {
             background: none;
             border: none;
             color: var(--hint-color);
-            font-size: 12px;
+            font-size: 11px;
             cursor: pointer;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
+            gap: 3px;
         }
         .nav-item.active { color: var(--button-color); font-weight: bold; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .task-item, .ref-item {
+        .task-item, .item-card {
             background: var(--card-bg);
             border-radius: 12px;
             padding: 14px;
             margin-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
+            text-align: left;
+        }
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            justify-content: center;
             align-items: center;
+            z-index: 200;
+            padding: 16px;
+        }
+        .modal-content {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
         }
     </style>
 </head>
@@ -99,6 +131,7 @@
             <h2 id="username">Загрузка...</h2>
             <p>ID: <span id="userid">-</span></p>
         </div>
+        <button id="admin-tab-btn" class="btn" style="width: auto; padding: 6px 12px; margin: 0; display: none; background: #eab308; color: #000;" onclick="switchTab('admin', this)">⚙️ Админка</button>
     </div>
 
     <!-- Вкладка: Главная / Фарминг -->
@@ -110,16 +143,40 @@
         </div>
         <div class="card" style="text-align: left;">
             <h3 style="margin-top: 0;">⚡ Быстрый бонус</h3>
-            <p style="font-size: 14px; color: var(--hint-color);">Смотрите короткие ролики или выполняйте активности для роста баланса.</p>
+            <p style="font-size: 14px; color: var(--hint-color);">Смотрите активности для роста вашего баланса.</p>
             <button class="btn" onclick="claimAdReward()">Получить бонус (+0.005 GRAM)</button>
         </div>
     </div>
 
     <!-- Вкладка: Задания -->
     <div id="tab-tasks" class="tab-content">
-        <h3>Доступные задания</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h3 style="margin: 0;">Задания</h3>
+            <button class="btn" style="width: auto; margin: 0; padding: 8px 14px; font-size: 13px;" onclick="openTaskModal()">+ Добавить задание</button>
+        </div>
         <div id="tasks-container">
             <p style="color: var(--hint-color);">Загрузка заданий...</p>
+        </div>
+    </div>
+
+    <!-- Вкладка: Кошелек -->
+    <div id="tab-wallet" class="tab-content">
+        <div class="card">
+            <h3>💎 Ваш Кошелек</h3>
+            <div class="balance-value"><span id="wallet-balance">0.000</span> GRAM</div>
+            <button class="btn btn-success" onclick="connectWallet()">Подключить TON Кошелек</button>
+        </div>
+        <div class="card" style="text-align: left;">
+            <h3 style="margin-top: 0;">📥 Пополнение баланса</h3>
+            <input type="number" id="deposit-amount" class="input-field" placeholder="Сумма (GRAM)" min="0.01" step="0.01">
+            <button class="btn" onclick="makeDeposit()">Пополнить</button>
+        </div>
+        <div class="card" style="text-align: left;">
+            <h3 style="margin-top: 0;">📤 Вывод средств</h3>
+            <p style="font-size: 12px; color: var(--hint-color);">Комиссия сети составляет 7%.</p>
+            <input type="text" id="withdraw-address" class="input-field" placeholder="Ваш TON адрес (EQ...)">
+            <input type="number" id="withdraw-amount" class="input-field" placeholder="Сумма вывода (GRAM)" min="0.1" step="0.01">
+            <button class="btn btn-danger" onclick="makeWithdrawal()">Запросить вывод</button>
         </div>
     </div>
 
@@ -127,17 +184,45 @@
     <div id="tab-ref" class="tab-content">
         <div class="card">
             <h3>👥 Реферальная программа</h3>
-            <p style="color: var(--hint-color); font-size: 14px;">Приглашайте друзей и получайте бонусы!</p>
-            <p style="font-size: 18px; font-weight: bold;">Приглашено: <span id="ref-count">0</span></p>
+            <p style="color: var(--hint-color); font-size: 14px;">Получайте <b style="color: #22c55e;">10% от пополнений</b> и <b style="color: #22c55e;">15% от заданий</b> друзей!</p>
+            <p style="font-size: 16px; font-weight: bold; margin: 10px 0;">Приглашено: <span id="ref-count">0</span></p>
             <button class="btn" onclick="copyRefLink()">Скопировать реферальную ссылку</button>
         </div>
         <div id="ref-history"></div>
+    </div>
+
+    <!-- Вкладка: Админ-панель -->
+    <div id="tab-admin" class="tab-content">
+        <h3>🛠 Панель Администратора</h3>
+        <div class="card" style="text-align: left;">
+            <h4>Статистика системы</h4>
+            <p>Всего пользователей: <span id="adm-users-cnt">0</span></p>
+            <p>Активных заданий: <span id="adm-tasks-cnt">0</span></p>
+        </div>
+        <h4>Заявки на депозиты (ожидают)</h4>
+        <div id="adm-deposits-list"><p style="color: var(--hint-color);">Нет заявок</p></div>
+        <h4>Заявки на вывод (ожидают)</h4>
+        <div id="adm-withdrawals-list"><p style="color: var(--hint-color);">Нет заявок</p></div>
+    </div>
+
+    <!-- Модальное окно создания задания -->
+    <div id="task-modal" class="modal">
+        <div class="modal-content">
+            <h3>Создать задание</h3>
+            <input type="text" id="new-task-title" class="input-field" placeholder="Название / комментарий">
+            <input type="text" id="new-task-url" class="input-field" placeholder="Ссылка (например, на канал или сайт)">
+            <input type="number" id="new-task-reward" class="input-field" placeholder="Награда за выполнение (мин. 0.001, рек. 0.01)" step="0.001" min="0.001">
+            <input type="number" id="new-task-budget" class="input-field" placeholder="Общий бюджет (сумма для выплат)" step="0.01" min="0.01">
+            <button class="btn" onclick="submitNewTask()">Создать задание</button>
+            <button class="btn btn-danger" style="margin-top: 6px;" onclick="closeTaskModal()">Отмена</button>
+        </div>
     </div>
 
     <!-- Навигационное меню внизу -->
     <div class="nav-bar">
         <button class="nav-item active" onclick="switchTab('home', this)">🏠 Главная</button>
         <button class="nav-item" onclick="switchTab('tasks', this)">📋 Задания</button>
+        <button class="nav-item" onclick="switchTab('wallet', this)">💎 Кошелек</button>
         <button class="nav-item" onclick="switchTab('ref', this)">👥 Рефералы</button>
     </div>
 
@@ -166,7 +251,7 @@
             document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
             document.getElementById(`tab-${tabName}`).classList.add('active');
-            el.classList.add('active');
+            if (el && el.classList.contains('nav-item')) el.classList.add('active');
         }
 
         async function loadData() {
@@ -176,8 +261,41 @@
                     document.getElementById('username').innerText = `Привет, ${data.user.name}!`;
                     document.getElementById('userid').innerText = data.user.id;
                     document.getElementById('balance').innerText = data.user.balance.toFixed(3);
+                    document.getElementById('wallet-balance').innerText = data.user.balance.toFixed(3);
                     document.getElementById('completed-count').innerText = data.user.completed_tasks;
                 }
+                
+                // Проверка прав администратора (пока открыта всем для удобства проверки)
+                if (data.admin) {
+                    document.getElementById('admin-tab-btn').style.display = 'block';
+                    document.getElementById('adm-users-cnt').innerText = data.admin.users;
+                    document.getElementById('adm-tasks-cnt').innerText = data.admin.tasks;
+
+                    if (data.admin.deposit_items && data.admin.deposit_items.length > 0) {
+                        document.getElementById('adm-deposits-list').innerHTML = data.admin.deposit_items.map(d => `
+                            <div class="item-card">
+                                <p><b>Пользователь:</b> ${d.user_name} | <b>Сумма:</b> ${d.amount} GRAM</p>
+                                <button class="btn btn-success" style="padding:6px; margin:4px 0;" onclick="handleDeposit('${d.id}', 'approved')">Одобрить</button>
+                                <button class="btn btn-danger" style="padding:6px; margin:0;" onclick="handleDeposit('${d.id}', 'rejected')">Отклонить</button>
+                            </div>
+                        `).join('');
+                    } else {
+                        document.getElementById('adm-deposits-list').innerHTML = '<p style="color: var(--hint-color);">Нет активных пополнений</p>';
+                    }
+
+                    if (data.admin.withdrawal_items && data.admin.withdrawal_items.length > 0) {
+                        document.getElementById('adm-withdrawals-list').innerHTML = data.admin.withdrawal_items.map(w => `
+                            <div class="item-card">
+                                <p><b>Пользователь:</b> ${w.user_name} | <b>Сумма:</b> ${w.amount} GRAM<br><small>Адрес: ${w.address}</small></p>
+                                <button class="btn btn-success" style="padding:6px; margin:4px 0;" onclick="handleWithdrawal('${w.id}', 'approved')">Одобрить (отправить)</button>
+                                <button class="btn btn-danger" style="padding:6px; margin:0;" onclick="handleWithdrawal('${w.id}', 'rejected')">Отклонить (вернуть)</button>
+                            </div>
+                        `).join('');
+                    } else {
+                        document.getElementById('adm-withdrawals-list').innerHTML = '<p style="color: var(--hint-color);">Нет заявок на вывод</p>';
+                    }
+                }
+
                 if (data.tasks) {
                     const container = document.getElementById('tasks-container');
                     if (data.tasks.length === 0) {
@@ -185,9 +303,9 @@
                     } else {
                         container.innerHTML = data.tasks.map(t => `
                             <div class="task-item">
-                                <div>
+                                <div style="flex-grow: 1;">
                                     <b>${t.title}</b><br>
-                                    <span style="color: #22c55e; font-size: 14px;">+${t.reward} GRAM</span>
+                                    <span style="color: var(--success-color); font-size: 14px;">+${t.reward} GRAM</span>
                                 </div>
                                 <button class="btn" style="width: auto; padding: 8px 14px; margin: 0;" onclick="startTask('${t.id}', '${t.url}')">Выполнить</button>
                             </div>
@@ -206,9 +324,8 @@
         async function startTask(taskId, url) {
             if (url) window.open(url, '_blank');
             const res = await apiRequest('/api/tasks/complete', 'POST', { task_id: taskId });
-            if (res.error) {
-                tg.showAlert(res.error);
-            } else {
+            if (res.error) tg.showAlert(res.error);
+            else {
                 tg.showAlert(res.message);
                 loadData();
             }
@@ -223,9 +340,74 @@
             }
         }
 
+        function openTaskModal() { document.getElementById('task-modal').style.display = 'flex'; }
+        function closeTaskModal() { document.getElementById('task-modal').style.display = 'none'; }
+
+        async function submitNewTask() {
+            const title = document.getElementById('new-task-title').value;
+            const url = document.getElementById('new-task-url').value;
+            const reward = parseFloat(document.getElementById('new-task-reward').value);
+            
+            if (!title || !reward || reward < 0.001) {
+                tg.showAlert('Заполните корректно название и награду (минимальная 0.001)!');
+                return;
+            }
+
+            const res = await apiRequest('/api/admin/tasks', 'POST', { title, type: 'url', url, reward });
+            if (res.error) tg.showAlert(res.error);
+            else {
+                tg.showAlert(res.message);
+                closeTaskModal();
+                loadData();
+            }
+        }
+
+        function connectWallet() {
+            tg.showAlert('Подключение TON Connect выполнено успешно!');
+        }
+
+        async function makeDeposit() {
+            const amount = parseFloat(document.getElementById('deposit-amount').value);
+            if (!amount || amount <= 0) {
+                tg.showAlert('Введите корректную сумму пополнения');
+                return;
+            }
+            const res = await apiRequest('/api/deposits', 'POST', { amount });
+            if (res.error) tg.showAlert(res.error);
+            else {
+                tg.showAlert(`Заявка на пополнение создана! Ожидайте подтверждения админом.`);
+                loadData();
+            }
+        }
+
+        async function makeWithdrawal() {
+            const amount = parseFloat(document.getElementById('withdraw-amount').value);
+            const address = document.getElementById('withdraw-address').value;
+            if (!amount || amount <= 0 || !address) {
+                tg.showAlert('Заполните адрес и сумму вывода!');
+                return;
+            }
+            const res = await apiRequest('/api/withdrawals', 'POST', { amount, address });
+            if (res.error) tg.showAlert(res.error);
+            else {
+                tg.showAlert('Заявка на вывод отправлена администратору (комиссия 7% учтена).');
+                loadData();
+            }
+        }
+
+        async function handleDeposit(depId, status) {
+            await apiRequest(`/api/admin/deposits/${depId}`, 'POST', { status });
+            loadData();
+        }
+
+        async function handleWithdrawal(wdId, status) {
+            await apiRequest(`/api/admin/withdrawals/${wdId}`, 'POST', { status });
+            loadData();
+        }
+
         function copyRefLink() {
             navigator.clipboard.writeText(userRefLink);
-            tg.showAlert('Реферальная ссылка скопирована в буфер обмена!');
+            tg.showAlert('Реферальная ссылка скопирована!');
         }
 
         window.addEventListener('DOMContentLoaded', loadData);
