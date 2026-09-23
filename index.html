@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crypto Farm Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- Подключаем официальный Adsgram SDK (замени blockId="int-XXX" на свой ID блока из кабинета Adsgram) -->
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     <style>
         :root {
@@ -241,7 +240,7 @@
         <div class="modal-content">
             <h3>Создать задание</h3>
             <input type="text" id="new-task-title" class="input-field" placeholder="Название / описание задания">
-            <input type="text" id="new-task-url" class="input-field" placeholder="Ссылка (например, на канал или сайт)">
+            <input type="text" id="new-task-url" class="input-field" placeholder="Ссылка (например, https://t.me/channel)">
             <input type="number" id="new-task-reward" class="input-field" placeholder="Награда за выполнение (мин. 0.001)" step="0.001" min="0.001">
             <input type="number" id="new-task-budget" class="input-field" placeholder="Общий бюджет (сумма для выплат)" step="0.01" min="0.01">
             <button class="btn" onclick="submitNewTask()">Создать</button>
@@ -279,7 +278,6 @@
         const initData = tg.initData || '';
         let userRefLink = '';
 
-        // Инициализация Adsgram Controller (укажи свой блок вместо 'int-XXX')
         const adController = window.Adsgram ? window.Adsgram.init({ blockId: "49424" }) : null;
 
         async function apiRequest(path, method = 'GET', body = null) {
@@ -313,13 +311,11 @@
                     document.getElementById('completed-count').innerText = data.user.completed_tasks;
                 }
                 
-                // Админ-панель
                 if (data.admin) {
                     document.getElementById('admin-tab-btn').style.display = 'block';
                     document.getElementById('adm-users-cnt').innerText = data.admin.users || 0;
                     document.getElementById('adm-tasks-cnt').innerText = data.admin.tasks || 0;
 
-                    // Депозиты
                     if (data.admin.deposit_items && data.admin.deposit_items.length > 0) {
                         document.getElementById('adm-deposits-list').innerHTML = data.admin.deposit_items.map(d => `
                             <div class="item-card">
@@ -332,7 +328,6 @@
                         document.getElementById('adm-deposits-list').innerHTML = '<p style="color: var(--hint-color);">Нет активных пополнений</p>';
                     }
 
-                    // Выводы
                     if (data.admin.withdrawal_items && data.admin.withdrawal_items.length > 0) {
                         document.getElementById('adm-withdrawals-list').innerHTML = data.admin.withdrawal_items.map(w => `
                             <div class="item-card">
@@ -345,7 +340,6 @@
                         document.getElementById('adm-withdrawals-list').innerHTML = '<p style="color: var(--hint-color);">Нет заявок на вывод</p>';
                     }
 
-                    // Управление заданиями
                     if (data.admin.tasks_list && data.admin.tasks_list.length > 0) {
                         document.getElementById('adm-tasks-list').innerHTML = data.admin.tasks_list.map(t => `
                             <div class="item-card" style="display: flex; justify-content: space-between; align-items: center;">
@@ -360,7 +354,6 @@
                         document.getElementById('adm-tasks-list').innerHTML = '<p style="color: var(--hint-color);">Нет активных заданий</p>';
                     }
 
-                    // Список пользователей
                     const usersListArray = data.admin.users_list || data.admin.users || [];
                     if (usersListArray.length > 0) {
                         document.getElementById('adm-users-list').innerHTML = usersListArray.map(u => `
@@ -377,25 +370,26 @@
                     }
                 }
 
-                // Задания для пользователей
                 if (data.tasks) {
                     const container = document.getElementById('tasks-container');
                     if (data.tasks.length === 0) {
                         container.innerHTML = '<p style="color: var(--hint-color);">Пока нет доступных заданий.</p>';
                     } else {
                         container.innerHTML = data.tasks.map(t => `
-                            <div class="task-item">
-                                <div style="flex-grow: 1;">
+                            <div class="task-item" style="display: flex; flex-direction: column; gap: 8px;">
+                                <div>
                                     <b>${t.title}</b><br>
                                     <span style="color: var(--success-color); font-size: 14px;">+${t.reward} GRAM</span>
                                 </div>
-                                <button class="btn" style="width: auto; padding: 8px 14px; margin: 0;" onclick="startTask('${t.id}', '${t.url}')">Выполнить</button>
+                                <div style="display: flex; gap: 8px;">
+                                    <button class="btn" style="margin: 0; padding: 8px; font-size: 13px; flex: 1; background-color: #334155;" onclick="openTaskUrl('${t.url}')">🔗 Ссылка</button>
+                                    <button class="btn btn-success" style="margin: 0; padding: 8px; font-size: 13px; flex: 1;" onclick="completeTask('${t.id}')">✅ Проверить</button>
+                                </div>
                             </div>
                         `).join('');
                     }
                 }
 
-                // Рефералы
                 if (data.ref) {
                     userRefLink = data.ref.link;
                     document.getElementById('ref-count').innerText = data.ref.count;
@@ -413,17 +407,26 @@
             }
         }
 
-        async function startTask(taskId, url) {
-            if (url) window.open(url, '_blank');
+        // Безопасное открытие ссылки в новом окне
+        function openTaskUrl(url) {
+            if (url && url !== 'undefined' && url.trim() !== '') {
+                window.open(url, '_blank');
+            } else {
+                tg.showAlert('Ссылка для этого задания не была указана при создании.');
+            }
+        }
+
+        // Начисление награды только при нажатии на «Проверить»
+        async function completeTask(taskId) {
             const res = await apiRequest('/api/tasks/complete', 'POST', { task_id: taskId });
-            if (res.error) tg.showAlert(res.error);
-            else {
+            if (res.error) {
+                tg.showAlert(res.error);
+            } else {
                 tg.showAlert(res.message);
                 loadData();
             }
         }
 
-        // Интеграция с Adsgram для получения бонуса за просмотр рекламы
         async function claimAdReward() {
             if (!adController) {
                 tg.showAlert('Рекламный SDK не инициализирован.');
@@ -431,10 +434,7 @@
             }
 
             try {
-                // Показываем рекламу пользователю
                 await adController.show();
-                
-                // Если просмотр завершен успешно, зачисляем бонус на бэкенде
                 const res = await apiRequest('/api/ads/reward', 'POST');
                 if (res.error) {
                     tg.showAlert(res.error);
@@ -443,8 +443,6 @@
                     loadData();
                 }
             } catch (err) {
-                // Пользователь закрыл рекламу досрочно или произошла ошибка
-                console.log("Реклама не была досмотрена:", err);
                 tg.showAlert('Чтобы получить бонус, нужно досмотреть рекламу до конца!');
             }
         }
@@ -461,8 +459,8 @@
             const reward = parseFloat(document.getElementById('new-task-reward').value);
             const budget = parseFloat(document.getElementById('new-task-budget').value);
             
-            if (!title || !reward || reward < 0.001) {
-                tg.showAlert('Заполните корректно название и награду!');
+            if (!title || !url || !reward || reward < 0.001) {
+                tg.showAlert('Заполните название, ссылку и награду!');
                 return;
             }
 
@@ -470,6 +468,10 @@
             if (res.error) tg.showAlert(res.error);
             else {
                 tg.showAlert('Задание успешно создано!');
+                document.getElementById('new-task-title').value = '';
+                document.getElementById('new-task-url').value = '';
+                document.getElementById('new-task-reward').value = '';
+                document.getElementById('new-task-budget').value = '';
                 closeTaskModal();
                 loadData();
             }
@@ -491,7 +493,7 @@
             const amount = parseFloat(rawVal);
             
             if (isNaN(amount)) {
-                tg.showAlert('Введите корректное значение со знаком + или - (например: +10 или -5)!');
+                tg.showAlert('Введите корректное значение со знаком + или -!');
                 return;
             }
 
@@ -499,7 +501,7 @@
             if (res.error) {
                 tg.showAlert(res.error);
             } else {
-                tg.showAlert('Баланс пользователя успешно изменен!');
+                tg.showAlert('Баланс успешно изменен!');
                 amountInput.value = '+';
                 loadData();
             }
@@ -507,27 +509,21 @@
 
         async function sendBroadcast() {
             const text = document.getElementById('broadcast-text').value;
-            if (!text.trim()) {
-                tg.showAlert('Введите текст для рассылки!');
-                return;
-            }
-            if (!confirm('Отправить это уведомление всем пользователям бота?')) return;
+            if (!text.trim()) { tg.showAlert('Введите текст рассылки!'); return; }
+            if (!confirm('Отправить уведомление всем пользователям?')) return;
             const res = await apiRequest('/api/admin/broadcast', 'POST', { text });
             if (res.error) tg.showAlert(res.error);
-            else {
-                tg.showAlert('Рассылка успешно запущена!');
-                document.getElementById('broadcast-text').value = '';
-            }
+            else { tg.showAlert('Рассылка запущена!'); document.getElementById('broadcast-text').value = ''; }
         }
 
-        function connectWallet() { tg.showAlert('Подключение TON Connect выполнено успешно!'); }
+        function connectWallet() { tg.showAlert('Подключение TON Connect выполнено!'); }
 
         async function makeDeposit() {
             const amount = parseFloat(document.getElementById('deposit-amount').value);
-            if (!amount || amount <= 0) { tg.showAlert('Введите корректную сумму'); return; }
+            if (!amount || amount <= 0) { tg.showAlert('Введите сумму'); return; }
             const res = await apiRequest('/api/deposits', 'POST', { amount });
             if (res.error) tg.showAlert(res.error);
-            else { tg.showAlert('Заявка на пополнение создана!'); loadData(); }
+            else { tg.showAlert('Заявка создана!'); loadData(); }
         }
 
         async function makeWithdrawal() {
@@ -536,7 +532,7 @@
             if (!amount || amount <= 0 || !address) { tg.showAlert('Заполните адрес и сумму!'); return; }
             const res = await apiRequest('/api/withdrawals', 'POST', { amount, address });
             if (res.error) tg.showAlert(res.error);
-            else { tg.showAlert('Заявка на вывод отправлена.'); loadData(); }
+            else { tg.showAlert('Заявка отправлена.'); loadData(); }
         }
 
         async function handleDeposit(depId, status) {
@@ -551,7 +547,7 @@
 
         function copyRefLink() {
             navigator.clipboard.writeText(userRefLink);
-            tg.showAlert('Реферальная ссылка скопирована!');
+            tg.showAlert('Ссылка скопирована!');
         }
 
         function shareRefLink() {
