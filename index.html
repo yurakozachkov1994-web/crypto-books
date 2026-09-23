@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crypto Farm Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Подключаем официальный Adsgram SDK (замени blockId="int-XXX" на свой ID блока из кабинета Adsgram) -->
+    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     <style>
         :root {
             --bg-color: var(--tg-theme-bg-color, #0f172a);
@@ -154,7 +156,7 @@
         </div>
         <div class="card" style="text-align: left;">
             <h3 style="margin-top: 0;">⚡ Быстрый бонус</h3>
-            <p style="font-size: 14px; color: var(--hint-color);">Смотрите активности для роста вашего баланса.</p>
+            <p style="font-size: 14px; color: var(--hint-color);">Посмотрите рекламный ролик для роста вашего баланса.</p>
             <button class="btn" onclick="claimAdReward()">Получить бонус (+0.005 GRAM)</button>
         </div>
     </div>
@@ -277,6 +279,9 @@
         const initData = tg.initData || '';
         let userRefLink = '';
 
+        // Инициализация Adsgram Controller (укажи свой блок вместо 'int-XXX')
+        const adController = window.Adsgram ? window.Adsgram.init({ blockId: "int-XXX" }) : null;
+
         async function apiRequest(path, method = 'GET', body = null) {
             const options = {
                 method,
@@ -340,7 +345,7 @@
                         document.getElementById('adm-withdrawals-list').innerHTML = '<p style="color: var(--hint-color);">Нет заявок на вывод</p>';
                     }
 
-                    // Управление заданиями в админке с кнопкой удаления
+                    // Управление заданиями
                     if (data.admin.tasks_list && data.admin.tasks_list.length > 0) {
                         document.getElementById('adm-tasks-list').innerHTML = data.admin.tasks_list.map(t => `
                             <div class="item-card" style="display: flex; justify-content: space-between; align-items: center;">
@@ -355,7 +360,7 @@
                         document.getElementById('adm-tasks-list').innerHTML = '<p style="color: var(--hint-color);">Нет активных заданий</p>';
                     }
 
-                    // Список пользователей в модальном окне
+                    // Список пользователей
                     const usersListArray = data.admin.users_list || data.admin.users || [];
                     if (usersListArray.length > 0) {
                         document.getElementById('adm-users-list').innerHTML = usersListArray.map(u => `
@@ -372,7 +377,7 @@
                     }
                 }
 
-                // Задания для обычных пользователей
+                // Задания для пользователей
                 if (data.tasks) {
                     const container = document.getElementById('tasks-container');
                     if (data.tasks.length === 0) {
@@ -390,7 +395,7 @@
                     }
                 }
 
-                // Реферальные данные
+                // Рефералы
                 if (data.ref) {
                     userRefLink = data.ref.link;
                     document.getElementById('ref-count').innerText = data.ref.count;
@@ -418,12 +423,29 @@
             }
         }
 
+        // Интеграция с Adsgram для получения бонуса за просмотр рекламы
         async function claimAdReward() {
-            const res = await apiRequest('/api/ads/reward', 'POST');
-            if (res.error) tg.showAlert(res.error);
-            else {
-                tg.showAlert(res.message);
-                loadData();
+            if (!adController) {
+                tg.showAlert('Рекламный SDK не инициализирован.');
+                return;
+            }
+
+            try {
+                // Показываем рекламу пользователю
+                await adController.show();
+                
+                // Если просмотр завершен успешно, зачисляем бонус на бэкенде
+                const res = await apiRequest('/api/ads/reward', 'POST');
+                if (res.error) {
+                    tg.showAlert(res.error);
+                } else {
+                    tg.showAlert(res.message);
+                    loadData();
+                }
+            } catch (err) {
+                // Пользователь закрыл рекламу досрочно или произошла ошибка
+                console.log("Реклама не была досмотрена:", err);
+                tg.showAlert('Чтобы получить бонус, нужно досмотреть рекламу до конца!');
             }
         }
 
