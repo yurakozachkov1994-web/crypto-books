@@ -6,6 +6,8 @@
     <title>Crypto Farm Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <!-- Подключаем официальный TON Connect UI через CDN -->
+    <script src="https://unpkg.com/@tonconnect/ui@latest/dist/tonconnect-ui.min.js"></script>
     <style>
         :root {
             --bg-color: var(--tg-theme-bg-color, #0f172a);
@@ -134,6 +136,11 @@
             gap: 8px;
             margin-top: 8px;
         }
+        #ton-connect-button {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
     </style>
 </head>
 <body>
@@ -174,14 +181,16 @@
     <!-- Вкладка: Кошелек -->
     <div id="tab-wallet" class="tab-content">
         <div class="card">
-            <h3>💎 Ваш Кошелек</h3>
+            <h3>💎 Ваш Кошелек TON</h3>
             <div class="balance-value"><span id="wallet-balance">0.000</span> GRAM</div>
-            <button class="btn btn-success" onclick="connectWallet()">Подключить TON Кошелек</button>
+            <!-- Официальная кнопка подключения TON Connect -->
+            <div id="ton-connect-button"></div>
         </div>
         <div class="card" style="text-align: left;">
             <h3 style="margin-top: 0;">📥 Пополнение баланса</h3>
-            <input type="number" id="deposit-amount" class="input-field" placeholder="Сумма (GRAM)" min="0.01" step="0.01">
-            <button class="btn" onclick="makeDeposit()">Пополнить</button>
+            <p style="font-size: 12px; color: var(--hint-color);">Средства поступят на твой баланс после подтверждения транзакции в кошельке.</p>
+            <input type="number" id="deposit-amount" class="input-field" placeholder="Сумма (например, 1 TON)" min="0.1" step="0.1">
+            <button class="btn btn-success" onclick="makeTonDeposit()">Оплатить через TON Connect</button>
         </div>
         <div class="card" style="text-align: left;">
             <h3 style="margin-top: 0;">📤 Вывод средств</h3>
@@ -275,10 +284,20 @@
         tg.expand();
 
         const API_URL = "https://crypto-farm-api.yurakozachkov1994.workers.dev";
+        
+        // ТВОЙ ЛИЧНЫЙ КОШЕЛЕК ДЛЯ ПОПОЛНЕНИЙ (замени при необходимости на свой адрес)
+        const MY_WALLET_ADDRESS = "UQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA━━━_YOUR_WALLET_ADDRESS_HERE"; 
+
         const initData = tg.initData || '';
         let userRefLink = '';
 
         const adController = window.Adsgram ? window.Adsgram.init({ blockId: "49424" }) : null;
+
+        // Инициализация TON Connect UI
+        const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
+            manifestUrl: 'https://crypto-farm-api.yurakozachkov1994.workers.dev/tonconnect-manifest.json', // или твой домен с манифестом
+            buttonRootId: 'ton-connect-button'
+        });
 
         async function apiRequest(path, method = 'GET', body = null) {
             const options = {
@@ -302,10 +321,7 @@
 
         async function loadData() {
             try {
-                // Передаем start_param на бэкенд для фиксации реферала
-                const startParam = tg.initDataUnsafe?.start_param || '';
-                const data = await apiRequest(`/api/bootstrap?start_param=${startParam}`);
-                
+                const data = await apiRequest('/api/bootstrap');
                 if (data.user) {
                     document.getElementById('username').innerText = `Привет, ${data.user.name}!`;
                     document.getElementById('userid').innerText = data.user.id;
@@ -396,14 +412,6 @@
                 if (data.ref) {
                     userRefLink = data.ref.link;
                     document.getElementById('ref-count').innerText = data.ref.count;
-                    if (data.ref.referred_users && data.ref.referred_users.length > 0) {
-                        document.getElementById('ref-list-container').innerHTML = data.ref.referred_users.map(refUser => `
-                            <div style="padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; display: flex; justify-content: space-between;">
-                                <span>👤 ${refUser.name}</span>
-                                <span style="color: var(--success-color);">+${refUser.earned || 0} GRAM</span>
-                            </div>
-                        `).join('');
-                    }
                 }
             } catch (e) {
                 console.error(e);
@@ -446,6 +454,56 @@
                 }
             } catch (err) {
                 tg.showAlert('Чтобы получить бонус, нужно досмотреть рекламу до конца!');
+            }
+        }
+
+        // Функция реального пополнения через TON Connect на твой кошелек
+        async function makeTonDeposit() {
+            if (!tonConnectUI.connected) {
+                tg.showAlert('Сначала подключите ваш TON кошелек кнопкой выше!');
+                tonConnectUI.openModal();
+                return;
+            }
+
+            const amountTon = parseFloat(document.getElementById('deposit-amount').value);
+            if (!amountTon || amountTon <= 0) {
+                tg.showAlert('Введите корректную сумму для пополнения!');
+                return;
+            }
+
+            // Переводим TON в наноTON (1 TON = 1,000,000,000 наноTON)
+            const nanoAmount = Math.round(amountTon * 1000000000).toString();
+
+            const transaction = {
+                validUntil: Math.floor(Date.now() / 1000) + 600, // 10 минут
+                messages: [
+                    {
+                        address: MY_WALLET_ADDRESS, // Твой кошелек
+                        amount: nanoAmount,         // Сумма в наноTON
+                    }
+                ]
+            };
+
+            try {
+                tg.showAlert('Подтвердите транзакцию в вашем кошельке...');
+                const result = await tonConnectUI.sendTransaction(transaction);
+                
+                // Отправляем уведомление на бэкенд для зачисления GRAM на баланс игрока
+                const res = await apiRequest('/api/deposits', 'POST', { 
+                    amount: amountTon, 
+                    tx_hash: result.boc || 'ton_connect_success' 
+                });
+
+                if (res.error) {
+                    tg.showAlert('Ошибка на сервере: ' + res.error);
+                } else {
+                    tg.showAlert('Оплата прошла успешно! Баланс пополнен.');
+                    document.getElementById('deposit-amount').value = '';
+                    loadData();
+                }
+            } catch (e) {
+                console.error(e);
+                tg.showAlert('Транзакция отменена или произошла ошибка.');
             }
         }
 
@@ -518,16 +576,6 @@
             else { tg.showAlert('Рассылка запущена!'); document.getElementById('broadcast-text').value = ''; }
         }
 
-        function connectWallet() { tg.showAlert('Подключение TON Connect выполнено!'); }
-
-        async function makeDeposit() {
-            const amount = parseFloat(document.getElementById('deposit-amount').value);
-            if (!amount || amount <= 0) { tg.showAlert('Введите сумму'); return; }
-            const res = await apiRequest('/api/deposits', 'POST', { amount });
-            if (res.error) tg.showAlert(res.error);
-            else { tg.showAlert('Заявка создана!'); loadData(); }
-        }
-
         async function makeWithdrawal() {
             const amount = parseFloat(document.getElementById('withdraw-amount').value);
             const address = document.getElementById('withdraw-address').value;
@@ -553,8 +601,8 @@
         }
 
         function shareRefLink() {
-            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(userRefLink)}&text=${encodeURIComponent("Присоединяйся к крипто-ферме и зарабатывай GRAM! 🚀")}`;
-            window.open(shareUrl, '_blank');
+            const shareText = encodeURIComponent("Присоединяйся к крипто-ферме и зарабатывай GRAM! 🚀\n" + userRefLink);
+            window.open(`https://t.me/share/url?url=${encodeURIComponent(userRefLink)}&text=${shareText}`, '_blank');
         }
 
         window.addEventListener('DOMContentLoaded', loadData);
