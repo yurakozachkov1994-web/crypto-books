@@ -285,7 +285,11 @@
 
         const API_URL = "https://crypto-farm-api.yurakozachkov1994.workers.dev";
         
-        // ТВОЙ ЛИЧНЫЙ КОШЕЛЕК ДЛЯ ПОПОЛНЕНИЙ (замени при необходимости на свой адрес)
+        // Укажи здесь юзернейм твоего телеграм-бота (без @) и короткое имя твоего Mini App (short name)
+        const BOT_USERNAME = "твой_бот_username"; 
+        const APP_SHORT_NAME = "имя_приложения";
+
+        // ТВОЙ ЛИЧНЫЙ КОШЕЛЕК ДЛЯ ПОПОЛНЕНИЙ
         const MY_WALLET_ADDRESS = "UQDmF28UYpQ9vcrdq_2Macit_ZEh53pi26YG2QAHQFPyytOh"; 
 
         const initData = tg.initData || '';
@@ -295,7 +299,7 @@
 
         // Инициализация TON Connect UI
         const tonConnectUI = new TON_CONNECT_UI.TonConnectUI({
-            manifestUrl: 'https://crypto-farm-api.yurakozachkov1994.workers.dev/tonconnect-manifest.json', // или твой домен с манифестом
+            manifestUrl: 'https://crypto-farm-api.yurakozachkov1994.workers.dev/tonconnect-manifest.json',
             buttonRootId: 'ton-connect-button'
         });
 
@@ -409,9 +413,14 @@
                     }
                 }
 
-                if (data.ref) {
-                    userRefLink = data.ref.link;
-                    document.getElementById('ref-count').innerText = data.ref.count;
+                if (data.user && data.user.id) {
+                    // ИСПРАВЛЕНИЕ: Надежное формирование реферальной ссылки через startapp
+                    const refCode = (data.ref && data.ref.code) ? data.ref.code : data.user.id;
+                    userRefLink = `https://t.me/${BOT_USERNAME}/${APP_SHORT_NAME}?startapp=${refCode}`;
+                    
+                    if (data.ref) {
+                        document.getElementById('ref-count').innerText = data.ref.count;
+                    }
                 }
             } catch (e) {
                 console.error(e);
@@ -596,11 +605,42 @@
         }
 
         function copyRefLink() {
-            navigator.clipboard.writeText(userRefLink);
-            tg.showAlert('Ссылка скопирована!');
+            if (!userRefLink) {
+                tg.showAlert('Ссылка еще не загружена.');
+                return;
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(userRefLink).then(() => {
+                    tg.showAlert('Ссылка скопирована!');
+                }).catch(() => {
+                    fallbackCopyText(userRefLink);
+                });
+            } else {
+                fallbackCopyText(userRefLink);
+            }
+        }
+
+        function fallbackCopyText(text) {
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            textArea.style.position = "fixed";
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                tg.showAlert('Ссылка скопирована!');
+            } catch (err) {
+                tg.showAlert('Не удалось скопировать ссылку.');
+            }
+            document.body.removeChild(textArea);
         }
 
         function shareRefLink() {
+            if (!userRefLink) {
+                tg.showAlert('Ссылка еще не загружена.');
+                return;
+            }
             const shareText = encodeURIComponent("Присоединяйся к крипто-ферме и зарабатывай GRAM! 🚀\n" + userRefLink);
             window.open(`https://t.me/share/url?url=${encodeURIComponent(userRefLink)}&text=${shareText}`, '_blank');
         }
